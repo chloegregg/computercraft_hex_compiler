@@ -1,5 +1,7 @@
 
 local token_patterns = {
+    {name = "_comment_line", pattern = "//[^\n]*"},
+    {name = "_comment_block", pattern = "/%*.-%*/"},
     {name = "statement_if", pattern = "if%s"},
     {name = "statement_else", pattern = "else%s"},
     {name = "statement_for", pattern = "for%s"},
@@ -37,11 +39,10 @@ local token_patterns = {
     {name = "op_xor", pattern = "(^^)"},
     {name = "op_xor", pattern = "(xor)"},
     {name = "assignment", pattern = "="},
+    {name = "comma", pattern = ","},
     {name = "semicolon", pattern = ";"},
     {name = "name", pattern = "(%a%w*)"},
     {name = "_whitespace", pattern = "%s+"},
-    {name = "_comment_line", pattern = "//[^\n]*"},
-    {name = "_comment_block", pattern = "/%*.-%*/"},
 }
 
 ---finds the 2d location of an index
