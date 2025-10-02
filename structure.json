@@ -1,0 +1,77 @@
+{
+    "location": {
+        "column": 1,
+        "line": 1
+    },
+    "location_end": {
+        "column": 10,
+        "line": 2
+    },
+    "type": "block",
+    "value": {
+        "names": [
+            "a",
+            "b"
+        ],
+        "structures": [
+            {
+                "location": {
+                    "column": 1,
+                    "line": 1
+                },
+                "location_end": {
+                    "column": 9,
+                    "line": 1
+                },
+                "type": "variable_assignment",
+                "value": {
+                    "name": "a",
+                    "value": {
+                        "location": {
+                            "column": 5,
+                            "line": 1
+                        },
+                        "location_end": {
+                            "column": 9,
+                            "line": 1
+                        },
+                        "type": "value",
+                        "value": {
+                            "type": "value_number",
+                            "value": 1234
+                        }
+                    }
+                }
+            },
+            {
+                "location": {
+                    "column": 1,
+                    "line": 2
+                },
+                "location_end": {
+                    "column": 10,
+                    "line": 2
+                },
+                "type": "variable_assignment",
+                "value": {
+                    "name": "b",
+                    "value": {
+                        "location": {
+                            "column": 5,
+                            "line": 2
+                        },
+                        "location_end": {
+                            "column": 10,
+                            "line": 2
+                        },
+                        "type": "value",
+                        "value": {
+                            "type": "value_number",
+                            "value": 12.34
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
