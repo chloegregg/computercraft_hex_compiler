@@ -7,7 +7,7 @@ local table_to_json = require("table_to_json")
 
 
 
-local file = io.open("numbers.hex")
+local file = io.open("basic.hex")
 
 local tokenised_ok, tokens, tokenised_msg = tokeniser.tokenise(file:read("a"))
 if not tokenised_ok then

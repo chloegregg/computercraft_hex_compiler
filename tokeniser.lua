@@ -5,6 +5,8 @@ local token_patterns = {
     {name = "statement_for", pattern = "for%s"},
     {name = "statement_while", pattern = "while%s"},
     {name = "statement_function", pattern = "function%s"},
+    {name = "statement_declare", pattern = "let%s"},
+    {name = "statement_delete", pattern = "delete%s"},
     {name = "value_number", pattern = "(%d*%.%d+)"},
     {name = "value_number", pattern = "(%d+)"},
     {name = "paren_open", pattern = "%("},
@@ -100,12 +102,14 @@ local function get_next_token(code, index)
         local ok, raw, match
         ok, index, raw, match = test_pattern(code, token_type.pattern, index)
         if ok then
+        local location_end = get_location(code, index - 1)
             return true, index, {
                 type = token_type.name,
                 value = match,
                 raw = raw,
                 index = index,
-                location = location
+                location = location,
+                location_end = location_end
             }, "ok"
         end
     end
