@@ -160,7 +160,6 @@ local function pattern_number(value)
             "multiplicative_distillation"
         )
     end
-    print(value)
     return patterns(
         pattern_number(math.floor(int_value / 10)),
         "ten",
@@ -336,8 +335,6 @@ local function compile_value(structure, scope)
         return true, pattern_number(structure.value), "ok"
     elseif structure.type == "name" then
         local var_index = scope_find(scope, structure.value)
-        print("scope", table_to_json(scope))
-        print("var_index", var_index, structure.value)
         if var_index == nil then
             return false, {}, "variable '"..structure.value.."' not defined"
         end
@@ -421,18 +418,14 @@ local function compile_if_statement(structure, scope)
     if not condition_ok then
         return false, {}, "compile if condition failed:\n"..condition_msg
     end
-    print("if scope 1", table_to_json(scope))
-    print("if scope 2", table_to_json(scope))
     local if_block_ok, if_block_pattern, if_block_msg = compile(structure.if_block, scope)
     if not if_block_ok then
         return false, {}, "compile if block failed:\n"..if_block_msg
     end
-    print("if scope 3", table_to_json(scope))
     local else_block_ok, else_block_pattern, else_block_msg = compile(structure.else_block, scope)
     if not else_block_ok then
         return false, {}, "compile else block failed:\n"..else_block_msg
     end
-    print("if scope 4", table_to_json(scope))
     return true, pattern_if_else(
         condition_pattern,
         if_block_pattern,
@@ -465,7 +458,6 @@ end
 ---@return table pattern
 ---@return string msg
 function compile(structure, scope)
-    print("compiling", structure.type, " with scope", table_to_json(scope), "at", tokeniser.location_string(structure.location))
     local compiler = ({
         block = compile_block,
         deletion = compile_deletion,
