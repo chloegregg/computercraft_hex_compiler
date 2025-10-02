@@ -99,12 +99,14 @@ local function test_parse_value(tokens, index)
     end
     index = index + 1
     local value
-    if token.type == "name" then
-        value = token.value
+    if token.type == "value_bool" then
+        value = token.value == "true"
     elseif token.type == "value_number" then
         value = tonumber(token.value)
+    elseif token.type == "name" then
+        value = token.value
     end
-    if value ~= nil then
+    if value ~= nil or token.type == "value_null" then
         return true, index, {
             type = "value",
             location = token.location,

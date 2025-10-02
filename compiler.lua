@@ -192,6 +192,21 @@ local function pattern_nulls(count)
     )
 end
 
+---creates a pattern that adds a boolean to the stack
+---@param value boolean
+---@return table pattern
+local function pattern_bool(value)
+    if value then
+        return patterns(
+            "true_reflection"
+        )
+    else
+        return patterns(
+            "false_reflection"
+        )
+    end
+end
+
 ---creates a pattern to fetch a stack value
 ---@param index integer
 ---@return table pattern
@@ -333,6 +348,8 @@ local function compile_value(structure, scope)
         return true, pattern_nulls(1), "ok"
     elseif structure.type == "value_number" then
         return true, pattern_number(structure.value), "ok"
+    elseif structure.type == "value_bool" then
+        return true, pattern_bool(structure.value), "ok"
     elseif structure.type == "name" then
         local var_index = scope_find(scope, structure.value)
         if var_index == nil then

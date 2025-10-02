@@ -1,4 +1,2 @@
-let a = 1;
-if (1) {
-    let b = a + 2;
-}
+let a = null;
+let b = false;
