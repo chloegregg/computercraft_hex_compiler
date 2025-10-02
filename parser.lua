@@ -76,6 +76,31 @@ end
 
 local test_parse_expression
 local test_parse_block
+---attempts to parse an index from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_index(tokens, index)
+    local open_bracket_token = get_token(tokens, index)
+    if open_bracket_token.type ~= "index_open" then
+        return false, index, {}, "missing opening bracket for index"
+    end
+    index = index + 1
+    local value_ok, value_structure, value_msg
+    value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+    if not value_ok then
+        return false, index, {}, "failed to parse index expression:\n"..value_msg
+    end
+    local close_bracket_token = get_token(tokens, index)
+    if close_bracket_token.type ~= "index_close" then
+        return false, index, {}, "missing closing bracket for index"
+    end
+    index = index + 1
+    return true, index, value_structure, "ok"
+end
 ---attempts to parse a value from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -86,10 +111,10 @@ local test_parse_block
 local function test_parse_value(tokens, index)
     local token = get_token(tokens, index)
     if token.type == "paren_open" then
-        local ok, value_structure, msg
-        ok, index, value_structure, msg = test_parse_expression(tokens, index)
-        if not ok then
-            return false, index, {}, "failed to parse value: \n"..msg
+        local value_ok, value_structure, value_msg
+        value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+        if not value_ok then
+            return false, index, {}, "failed to parse value: \n"..value_msg
         end
         local close_token = get_token(tokens, index)
         if close_token.type ~= "paren_close" then
@@ -99,25 +124,52 @@ local function test_parse_value(tokens, index)
     end
     index = index + 1
     local value
-    if token.type == "value_bool" then
-        value = token.value == "true"
+    if token.type == "value_null" then
+        value = {}
+    elseif token.type == "value_bool" then
+        value = {
+            value = token.value == "true"
+        }
     elseif token.type == "value_number" then
-        value = tonumber(token.value)
+        value = {
+            value = tonumber(token.value)
+        }
     elseif token.type == "name" then
-        value = token.value
+        value = {
+            value = token.value
+        }
     end
-    if value ~= nil or token.type == "value_null" then
-        return true, index, {
-            type = "value",
-            location = token.location,
-            location_end = tokens[index - 1].location_end,
+    if value == nil then
+        return false, index, {}, "not a valid value token"
+    end
+    value.type = token.type
+    local structure = {
+        type = "value",
+        location = token.location,
+        location_end = tokens[index - 1].location_end,
+        value = value
+    }
+    while true do
+        local open_bracket_token = get_token(tokens, index)
+        if open_bracket_token.type ~= "index_open" then
+            break
+        end
+        local index_ok, index_structure, index_msg
+        index_ok, index, index_structure, index_msg = test_parse_index(tokens, index)
+        if not index_ok then
+            return false, index, {}, "failed to parse index:\n"..index_msg
+        end
+        structure = {
+            type = "index",
+            location = structure.location,
+            location_end = index_structure.location_end,
             value = {
-                type = token.type,
-                value = value
+                value = structure,
+                index = index_structure
             }
-        }, "ok"
+        }
     end
-    return false, index, {}, "not a valid value token"
+    return true, index, structure, "ok"
 end
 
 ---attempts to parse an expression from tokens starting at the given index
@@ -202,6 +254,19 @@ local function test_parse_assignment_statement(tokens, index)
         return false, index, {}, "variable assignment requires a name"
     end
     index = index + 1
+    local indicies = {}
+    while true do
+        local open_bracket_token = get_token(tokens, index)
+        if open_bracket_token.type ~= "index_open" then
+            break
+        end
+        local index_ok, index_structure, index_msg
+        index_ok, index, index_structure, index_msg = test_parse_index(tokens, index)
+        if not index_ok then
+            return false, index, {}, "failed to parse variable assignment index:\n"..index_msg
+        end
+        table.insert(indicies, index_structure)
+    end
     local op_token = get_token(tokens, index)
     if not (op_token.type == "assignment" or starts_with(op_token.type, "op_")) then
         return false, index, {}, "variable assignment missing operator"
@@ -216,10 +281,10 @@ local function test_parse_assignment_statement(tokens, index)
         end
         index = index + 1
     end
-    local ok, expression_structure, msg
-    ok, index, expression_structure, msg = test_parse_expression(tokens, index)
-    if not ok then
-        return false, index, {}, "failed to parse expression:\n"..msg
+    local expression_ok, expression_structure, expression_msg
+    expression_ok, index, expression_structure, expression_msg = test_parse_expression(tokens, index)
+    if not expression_ok then
+        return false, index, {}, "failed to parse expression:\n"..expression_msg
     end
     local semicolon_token = get_token(tokens, index)
     if semicolon_token.type ~= "semicolon" then
@@ -252,6 +317,7 @@ local function test_parse_assignment_statement(tokens, index)
         location_end = semicolon_token.location_end,
         value = {
             name = name_token.value,
+            indicies = indicies,
             is_declared = true,
             value = expression_structure
         }
@@ -277,6 +343,9 @@ local function test_parse_declaration_statement(tokens, index)
         return false, index, {}, "declaration requires a variable name"
     end
     local assignment_ok, new_index, assignment_structure, _ = test_parse_assignment_statement(tokens, index)
+    if #assignment_structure.value.indicies > 0 then
+        return false, index, {}, "cannot declare a variable with indicies"
+    end
     if assignment_ok then
         assignment_structure.value.is_declared = false
         return true, new_index, assignment_structure, "ok"

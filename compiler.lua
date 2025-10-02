@@ -360,6 +360,30 @@ local function compile_value(structure, scope)
     return false, {}, "unknown value type '"..tostring(structure.type)
 end
 
+---compiles an index structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_index(structure, scope)
+    local value_ok, value_pattern, value_msg = compile(structure.value, scope)
+    if not value_ok then
+        return false, {}, "compile indexed value failed:\n"..value_msg
+    end
+    scope_shift(scope, 1)
+    local index_ok, index_pattern, index_msg = compile(structure.index, scope)
+    if not index_ok then
+        return false, {}, "compile index failed:\n"..index_msg
+    end
+    scope_shift(scope, -1)
+    return true, patterns(
+        value_pattern,
+        index_pattern,
+        "selection_distillation"
+    ), "ok"
+end
+
 ---compiles an expression structure into a pattern
 ---@param structure table
 ---@param scope table
@@ -395,16 +419,49 @@ local function compile_variable_assignment(structure, scope)
     if var_index == nil and structure.is_declared then
         return false, {}, "variable '"..structure.name.."' not defined at "..tokeniser.location_string(structure.value.location)
     end
+    scope_shift(scope, 2 * #structure.indicies)
     local value_ok, value_pattern, value_msg = compile(structure.value, scope)
     if not value_ok then
         return false, {}, "compile variable assignment value failed:\n"..value_msg
     end
+    scope_shift(scope, -2 * #structure.indicies)
     if not structure.is_declared then
         scope_add(scope, structure.name)
         return true, value_pattern, "ok"
     end
+    if #structure.indicies == 0 then
+        return true, patterns(
+            value_pattern,
+            pattern_stack_throw_copy(var_index)
+        ), "ok"
+    end
+    local pattern = pattern_stack_fetch_copy(var_index)
+    scope_shift(scope, 1)
+    for i, index_structure in ipairs(structure.indicies) do
+        local index_ok, index_pattern, index_msg = compile(index_structure, scope)
+        if not index_ok then
+            return false, {}, "compile variable assignment index "..i.." failed:\n"..index_msg
+        end
+        if i == #structure.indicies then
+            list_combine(pattern, index_pattern)
+            scope_shift(scope, 1)
+        else
+            list_combine(pattern, patterns(
+                index_pattern,
+                "dioscuri_gambit",
+                "selection_distillation"
+            ))
+            scope_shift(scope, 2)
+        end
+    end
+    list_combine(pattern, value_pattern)
+    for _ = 1, #structure.indicies do
+        list_combine(pattern, patterns(
+            "surgeons_exaltation"
+        ))
+    end
     return true, patterns(
-        value_pattern,
+        pattern,
         pattern_stack_throw_copy(var_index)
     ), "ok"
 end
@@ -481,6 +538,7 @@ function compile(structure, scope)
         variable_assignment = compile_variable_assignment,
         expression = compile_expression,
         value = compile_value,
+        index = compile_index,
         if_statement = compile_if_statement,
     })[structure.type]
     if compiler then
