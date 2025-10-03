@@ -106,7 +106,11 @@ end
 ---@param pattern table
 ---@return table escaped_pattern
 local function escape_pattern(pattern)
-    if #pattern == 1 then
+    if #pattern == 0 then
+        return patterns(
+            "vacant_reflection"
+        )
+    elseif #pattern == 1 then
         return patterns(
             "consideration",
             pattern
@@ -350,6 +354,22 @@ local function compile_value(structure, scope)
         return true, pattern_number(structure.value), "ok"
     elseif structure.type == "value_bool" then
         return true, pattern_bool(structure.value), "ok"
+    elseif structure.type == "list" then
+        local list_patterns = {}
+        for _, value in ipairs(structure.value) do
+            local value_ok, value_pattern, value_msg = compile(value, scope)
+            if not value_ok then
+                return false, {}, "value failed to compile:\n"..value_msg
+            end
+            list_combine(list_patterns, value_pattern)
+            scope_shift(scope, 1)
+        end
+        scope_shift(scope, -#structure.value)
+        return true, patterns(
+            list_patterns,
+            pattern_number(#structure.value),
+            "flocks_gambit"
+        ), "ok"
     elseif structure.type == "name" then
         local var_index = scope_find(scope, structure.value)
         if var_index == nil then

@@ -1,4 +1,5 @@
 local tokeniser = require("tokeniser")
+local table_to_json = require("table_to_json")
 
 local op_order = {
     {"op_exp"}, -- exponents first
@@ -138,11 +139,39 @@ local function test_parse_value(tokens, index)
         value = {
             value = token.value
         }
+    elseif token.type == "index_open" then
+        local list_value_structures = {}
+        local empty_list_token = get_token(tokens, index)
+        if empty_list_token.type ~= "index_close" then
+            while true do
+                local value_ok, value_structure, value_msg
+                value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+                if not value_ok then
+                    return false, index, {}, "failed to parse list value for index"..(#list_value_structures + 1)..": \n"..value_msg
+                end
+                table.insert(list_value_structures, value_structure)
+                local comma_token = get_token(tokens, index)
+                if comma_token.type == "index_close" then
+                    break
+                end
+                if comma_token.type ~= "comma" then
+                    return false, index, {}, "expected comma for index"..(#list_value_structures + 1).." at "..tokeniser.location_string(comma_token.location)
+                end
+                index = index + 1
+            end
+        end
+        index = index + 1
+        value = {
+            type = "list",
+            value = list_value_structures
+        }
     end
     if value == nil then
         return false, index, {}, "not a valid value token"
     end
-    value.type = token.type
+    if value.type == nil then
+        value.type = token.type
+    end
     local structure = {
         type = "value",
         location = token.location,
@@ -343,10 +372,10 @@ local function test_parse_declaration_statement(tokens, index)
         return false, index, {}, "declaration requires a variable name"
     end
     local assignment_ok, new_index, assignment_structure, _ = test_parse_assignment_statement(tokens, index)
-    if #assignment_structure.value.indicies > 0 then
-        return false, index, {}, "cannot declare a variable with indicies"
-    end
     if assignment_ok then
+        if #assignment_structure.value.indicies > 0 then
+            return false, index, {}, "cannot declare a variable with indicies"
+        end
         assignment_structure.value.is_declared = false
         return true, new_index, assignment_structure, "ok"
     end
@@ -512,17 +541,17 @@ end
 ---@return string msg
 local function test_parse_statement(tokens, index)
     local msgs = {}
-    for _, statement_parser in ipairs({
-        test_parse_declaration_statement,
-        test_parse_deletion_statement,
-        test_parse_assignment_statement,
-        test_parse_if_statement
+    for _, statement_parser_pair in ipairs({
+        {name = "declaration_statement", parser = test_parse_declaration_statement},
+        {name = "deletion_statement", parser = test_parse_deletion_statement},
+        {name = "assignment_statement", parser = test_parse_assignment_statement},
+        {name = "if_statement", parser = test_parse_if_statement}
     }) do
-        local ok, new_index, structure, msg = statement_parser(tokens, index)
+        local ok, new_index, structure, msg = statement_parser_pair.parser(tokens, index)
         if ok then
             return true, new_index, structure, "ok"
         end
-        table.insert(msgs, msg)
+        table.insert(msgs, statement_parser_pair.name..":   "..msg)
     end
     return false, index, {}, "no statement matched:\n- "..table.concat(msgs, "\n- ")
 end

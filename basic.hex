@@ -1,6 +1,4 @@
-let a = null; // test
-let b = false;
-/*
-block comment 
-*/
-b[6] = a[3][2][1];
+let a = 
+if (a[2] == 2) {
+    let b = 5;
+}
