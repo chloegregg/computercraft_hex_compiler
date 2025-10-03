@@ -1,4 +1,4 @@
-let a = function(param1, param2) {
+
+function(param1, param2) {
     let b = param1 + param2;
-};
-a(1, 2);
+}(1, 2);

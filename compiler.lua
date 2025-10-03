@@ -54,7 +54,7 @@ end
 ---@param scope table
 ---@param name string
 local function scope_add(scope, name)
-    table.insert(scope.names, name)
+    scope.names[scope.offset] = name
     scope.offset = scope.offset + 1
 end
 
@@ -77,8 +77,11 @@ end
 local function scope_remove(scope, name)
     for i = scope.offset - 1, 1, -1 do
         if scope.names[i] == name then
-            table.remove(scope.names, i)
+            for j = i + 1, scope.offset - 1 do
+                scope.names[j - 1] = scope.names[j]
+            end
             scope.offset = scope.offset - 1
+            scope.names[scope.offset] = nil
             return
         end
     end

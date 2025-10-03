@@ -10,9 +10,13 @@ local function table_to_json(tbl)
             end
             if is_list then
                 local s = "["
-                for i, v in ipairs(o) do
-                    s = s .. serialize(v)
-                    if i < #o then
+                local length = 0
+                for i, value in pairs(o) do
+                    length = math.max(length, i)
+                end
+                for i = 1, length do
+                    s = s .. serialize(o[i])
+                    if i < length then
                         s = s .. ", "
                     end
                 end
@@ -42,6 +46,8 @@ local function table_to_json(tbl)
             end
         elseif type(o) == "number" then
             return tostring(o)
+        elseif o == nil then
+            return "null"
         else
             return '"'..tostring(o)..'"'
         end
