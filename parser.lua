@@ -77,6 +77,7 @@ end
 
 local test_parse_expression
 local test_parse_block
+local test_parse_function
 ---attempts to parse an index from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -165,9 +166,19 @@ local function test_parse_value(tokens, index)
             type = "list",
             value = list_value_structures
         }
+    elseif token.type == "statement_function" then
+        local function_ok, function_structure, function_msg
+        function_ok, index, function_structure, function_msg = test_parse_function(tokens, index)
+        if not function_ok then
+            return false, index, {}, "failed to parse function:\n"..function_msg
+        end
+        value = {
+            type = "function",
+            value = function_structure
+        }
     end
     if value == nil then
-        return false, index, {}, "not a valid value token"
+        return false, index, {}, "not a valid value token at "..tokeniser.location_string(token.location)
     end
     if value.type == nil then
         value.type = token.type
@@ -530,6 +541,78 @@ local function test_parse_if_statement(tokens, index)
         else_chain_index = else_chain_index - 1
     end
     return true, index, final_structure, "ok"
+end
+
+---attempts to parse a function (excluding the function statement) from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+function test_parse_function(tokens, index)
+    local param_open_token = get_token(tokens, index)
+    if param_open_token.type ~= "paren_open" then
+        return false, index, {}, "function missing parameters at "..tokeniser.location_string(param_open_token.location)
+    end
+    index = index + 1
+    local params = {}
+    local no_param_token = get_token(tokens, index)
+    if no_param_token.type ~= "paren_close" then
+        while true do
+            local param_name_token = get_token(tokens, index)
+            if param_name_token.type ~= "name" then
+                return false, index, {}, "function parameter name missing at "..tokeniser.location_string(param_name_token.location)
+            end
+            index = index + 1
+            -- local default_value = {
+            --     type = "value",
+            --     value = {
+            --         type = "value_null"
+            --     }
+            -- }
+            -- local default_token = get_token(tokens, index)
+            -- if default_token.type == "assignment" then
+            --     index = index + 1
+            --     local value_ok, value_structure, value_msg
+            --     value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+            --     if not value_ok then
+            --         return false, index, {}, "failed parsing function default value:\n"..value_msg
+            --     end
+            --     default_value = value_structure
+            -- end
+            -- table.insert(params, {
+            --     name = name_token.value,
+            --     default = default_value
+            -- })
+            table.insert(params, param_name_token.value)
+            local comma_token = get_token(tokens, index)
+            if comma_token.type ~= "comma" then
+                break
+            end
+            index = index + 1
+        end
+    end
+    index = index + 1
+    local block_open_token = get_token(tokens, index)
+    if block_open_token.type ~= "block_open" then
+        return false, index, {}, "function missing open block at "..tokeniser.location_string(block_open_token.location)
+    end
+    index = index + 1
+    local block_ok, block_structure, block_msg
+    block_ok, index, block_structure, block_msg = test_parse_block(tokens, index)
+    if not block_ok then
+        return false, index, {}, "failed to parse function block:\n"..block_msg
+    end
+    local block_close_token = get_token(tokens, index)
+    if block_close_token.type ~= "block_close" then
+        return false, index, {}, "function missing close block at "..tokeniser.location_string(block_close_token.location)
+    end
+    index = index + 1
+    return true, index, {
+        params = params,
+        body = block_structure
+    }, "ok"
 end
 
 ---attempts to parse a statement from tokens starting at the given index

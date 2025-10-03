@@ -2,13 +2,13 @@
 local token_patterns = {
     {name = "_comment_line", pattern = "//[^\n]*"},
     {name = "_comment_block", pattern = "/%*.-%*/"},
-    {name = "statement_if", pattern = "if%s"},
-    {name = "statement_else", pattern = "else%s"},
-    {name = "statement_for", pattern = "for%s"},
-    {name = "statement_while", pattern = "while%s"},
-    {name = "statement_function", pattern = "function%s"},
-    {name = "statement_declare", pattern = "let%s"},
-    {name = "statement_delete", pattern = "delete%s"},
+    {name = "statement_if", pattern = "(if)%s"},
+    {name = "statement_else", pattern = "(else)%s"},
+    {name = "statement_for", pattern = "(for)%s"},
+    {name = "statement_while", pattern = "(while)%s"},
+    {name = "statement_function", pattern = "(function)[^%w]"},
+    {name = "statement_declare", pattern = "(let)%s"},
+    {name = "statement_delete", pattern = "(delete)%s"},
     {name = "value_null", pattern = "null"},
     {name = "value_bool", pattern = "(true)"},
     {name = "value_bool", pattern = "(false)"},
@@ -81,14 +81,17 @@ end
 ---@param code string
 ---@param pattern string
 ---@param init integer
----@return boolean
----@return integer
----@return string
----@return string
+---@return boolean matched
+---@return integer new_index
+---@return string raw
+---@return string|nil match
 local function test_pattern(code, pattern, init)
     local start_index, end_index, match = code:find(pattern, init)
     if start_index == nil or start_index > init then
         return false, init, "", ""
+    end
+    if match then
+        return true, start_index + #match, match, match
     end
     return true, end_index + 1, code:sub(start_index, end_index), match
 end
@@ -106,7 +109,7 @@ local function get_next_token(code, index)
         local ok, raw, match
         ok, index, raw, match = test_pattern(code, token_type.pattern, index)
         if ok then
-        local location_end = get_location(code, index - 1)
+            local location_end = get_location(code, index - 1)
             return true, index, {
                 type = token_type.name,
                 value = match,

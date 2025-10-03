@@ -370,6 +370,18 @@ local function compile_value(structure, scope)
             pattern_number(#structure.value),
             "flocks_gambit"
         ), "ok"
+    elseif structure.type == "function" then
+        for _, name in ipairs(structure.value.params) do
+            scope_add(scope, name)
+        end
+        local body_ok, body_pattern, body_msg = compile(structure.value.body, scope)
+        if not body_ok then
+            return false, {}, "function body failed to compile:\n"..body_msg
+        end
+        for _, name in ipairs(structure.value.params) do
+            scope_remove(scope, name)
+        end
+        return true, escape_pattern(body_pattern), "ok"
     elseif structure.type == "name" then
         local var_index = scope_find(scope, structure.value)
         if var_index == nil then
