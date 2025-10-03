@@ -31,26 +31,31 @@ local operators = {
     op_lst = "minimus_distillation",
 }
 
----shift the scope to account for a number of values added to the stack (this is not mutative)
+local function scope_new()
+    return {
+        offset = 1,
+        names = {}
+    }
+end
+
+---shift the scope to account for a number of values added to the stack
 ---@param scope table
 ---@param amount integer
 local function scope_shift(scope, amount)
-    if amount > 0 then
-        for i = 1, amount do
-            table.insert(scope, 1, i)
-        end
-    else
-        for _ = 1, -amount do
-            table.remove(scope, 1)
+    scope.offset = scope.offset + amount
+    if amount < 0 then
+        for i = 1, -amount do
+            scope.names[scope.offset - amount - i] = nil
         end
     end
 end
 
----add a new name to an existing scope and adjusts indices accordingly
+---add a new name to an existing scope
 ---@param scope table
 ---@param name string
 local function scope_add(scope, name)
-    table.insert(scope, 1, name)
+    table.insert(scope.names, name)
+    scope.offset = scope.offset + 1
 end
 
 ---finds the closest position of a name in the scope
@@ -58,9 +63,9 @@ end
 ---@param name string
 ---@return integer index
 local function scope_find(scope, name)
-    for index, scope_name in ipairs(scope) do
-        if scope_name == name then
-            return index
+    for i = scope.offset - 1, 1, -1 do
+        if scope.names[i] == name then
+            return scope.offset - i
         end
     end
     return -1
@@ -70,9 +75,10 @@ end
 ---@param scope table
 ---@param name string
 local function scope_remove(scope, name)
-    for index, scope_name in ipairs(scope) do
-        if scope_name == name then
-            table.remove(scope, index)
+    for i = scope.offset - 1, 1, -1 do
+        if scope.names[i] == name then
+            table.remove(scope.names, i)
+            scope.offset = scope.offset - 1
             return
         end
     end
@@ -324,6 +330,47 @@ local function pattern_stack_throw_copy(index)
     )
 end
 
+---creates a pattern to remove a number of values from the stack
+---@param count integer
+---@return table pattern
+local function pattern_remove(count)
+    if count == 0 then
+        return patterns()
+    elseif count == 1 then
+        return patterns(
+            "bookkeepers_gambit_v"
+        )
+    elseif count == 2 then
+        return patterns(
+            "bookkeepers_gambit_vv"
+        )
+    elseif count == 3 then
+        return patterns(
+            "bookkeepers_gambit_vvv"
+        )
+    elseif count == 4 then
+        return patterns(
+            "bookkeepers_gambit_vvv",
+            "bookkeepers_gambit_v"
+        )
+    elseif count == 5 then
+        return patterns(
+            "bookkeepers_gambit_vvv",
+            "bookkeepers_gambit_vv"
+        )
+    elseif count == 6 then
+        return patterns(
+            "bookkeepers_gambit_vvv",
+            "bookkeepers_gambit_vvv"
+        )
+    end
+    return patterns(
+        pattern_number(count),
+        "flocks_gambit",
+        "bookkeepers_gambit_v"
+    )
+end
+
 ---creates a pattern for an if else statement
 ---@param condition_pattern table
 ---@param true_pattern table
@@ -339,7 +386,7 @@ local function pattern_if_else(condition_pattern, true_pattern, false_pattern)
     )
 end
 
-local compile
+local compile_structure
 
 ---compiles a value structure into a pattern
 ---@param structure table
@@ -357,7 +404,7 @@ local function compile_value(structure, scope)
     elseif structure.type == "list" then
         local list_patterns = {}
         for _, value in ipairs(structure.value) do
-            local value_ok, value_pattern, value_msg = compile(value, scope)
+            local value_ok, value_pattern, value_msg = compile_structure(value, scope)
             if not value_ok then
                 return false, {}, "value failed to compile:\n"..value_msg
             end
@@ -374,17 +421,23 @@ local function compile_value(structure, scope)
         for _, name in ipairs(structure.value.params) do
             scope_add(scope, name)
         end
-        local body_ok, body_pattern, body_msg = compile(structure.value.body, scope)
+        local body_ok, body_pattern, body_msg = compile_structure(structure.value.body, scope)
         if not body_ok then
             return false, {}, "function body failed to compile:\n"..body_msg
         end
         for _, name in ipairs(structure.value.params) do
             scope_remove(scope, name)
         end
-        return true, escape_pattern(body_pattern), "ok"
+        return true, escape_pattern(
+            patterns(
+                body_pattern,
+                pattern_remove(#structure.value.params),
+                "nullary_reflection"
+            )
+        ), "ok"
     elseif structure.type == "name" then
         local var_index = scope_find(scope, structure.value)
-        if var_index == nil then
+        if var_index < 1 then
             return false, {}, "variable '"..structure.value.."' not defined"
         end
         return true, pattern_stack_fetch_copy(var_index), "ok"
@@ -399,12 +452,12 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_index(structure, scope)
-    local value_ok, value_pattern, value_msg = compile(structure.value, scope)
+    local value_ok, value_pattern, value_msg = compile_structure(structure.value, scope)
     if not value_ok then
         return false, {}, "compile indexed value failed:\n"..value_msg
     end
     scope_shift(scope, 1)
-    local index_ok, index_pattern, index_msg = compile(structure.index, scope)
+    local index_ok, index_pattern, index_msg = compile_structure(structure.index, scope)
     if not index_ok then
         return false, {}, "compile index failed:\n"..index_msg
     end
@@ -416,6 +469,34 @@ local function compile_index(structure, scope)
     ), "ok"
 end
 
+---compiles a function call structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_call(structure, scope)
+    local pattern = {}
+    for _, arg in ipairs(structure.args) do
+        local arg_ok, arg_pattern, arg_msg = compile_structure(arg, scope)
+        if not arg_ok then
+            return false, {}, "compile call argument failed:\n"..arg_msg
+        end
+        list_combine(pattern, arg_pattern)
+        scope_shift(scope, 1)
+    end
+    local value_ok, value_pattern, value_msg = compile_structure(structure.value, scope)
+    if not value_ok then
+        return false, {}, "compile indexed value failed:\n"..value_msg
+    end
+    scope_shift(scope, -#structure.args)
+    return true, patterns(
+        pattern,
+        value_pattern,
+        "hermes_gambit"
+    ), "ok"
+end
+
 ---compiles an expression structure into a pattern
 ---@param structure table
 ---@param scope table
@@ -423,12 +504,12 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_expression(structure, scope)
-    local left_ok, left_pattern, left_msg = compile(structure.left, scope)
+    local left_ok, left_pattern, left_msg = compile_structure(structure.left, scope)
     if not left_ok then
         return false, {}, "compile expression left failed:\n"..left_msg
     end
     scope_shift(scope, 1)
-    local right_ok, right_pattern, right_msg = compile(structure.right, scope)
+    local right_ok, right_pattern, right_msg = compile_structure(structure.right, scope)
     if not right_ok then
         return false, {}, "compile expression right failed:\n"..right_msg
     end
@@ -448,11 +529,11 @@ end
 ---@return string msg
 local function compile_variable_assignment(structure, scope)
     local var_index = scope_find(scope, structure.name)
-    if var_index == nil and structure.is_declared then
+    if var_index < 1 and structure.is_declared then
         return false, {}, "variable '"..structure.name.."' not defined at "..tokeniser.location_string(structure.value.location)
     end
     scope_shift(scope, 2 * #structure.indicies)
-    local value_ok, value_pattern, value_msg = compile(structure.value, scope)
+    local value_ok, value_pattern, value_msg = compile_structure(structure.value, scope)
     if not value_ok then
         return false, {}, "compile variable assignment value failed:\n"..value_msg
     end
@@ -470,7 +551,7 @@ local function compile_variable_assignment(structure, scope)
     local pattern = pattern_stack_fetch_copy(var_index)
     scope_shift(scope, 1)
     for i, index_structure in ipairs(structure.indicies) do
-        local index_ok, index_pattern, index_msg = compile(index_structure, scope)
+        local index_ok, index_pattern, index_msg = compile_structure(index_structure, scope)
         if not index_ok then
             return false, {}, "compile variable assignment index "..i.." failed:\n"..index_msg
         end
@@ -498,6 +579,23 @@ local function compile_variable_assignment(structure, scope)
     ), "ok"
 end
 
+---compiles a bare value structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_bare_value(structure, scope)
+    local value_ok, value_pattern, value_msg = compile_structure(structure, scope)
+    if not value_ok then
+        return false, {}, "compile bare value failed:\n"..value_msg
+    end
+    return true, patterns(
+        value_pattern,
+        "bookkeepers_gambit_v"
+    ), "ok"
+end
+
 ---compiles a variable deletion structure into a pattern
 ---@param structure table
 ---@param scope table
@@ -506,6 +604,9 @@ end
 ---@return string msg
 local function compile_deletion(structure, scope)
     local var_index = scope_find(scope, structure.name)
+    if var_index < 1 then
+        return false, {}, "variable '"..structure.name.."' not defined at "..tokeniser.location_string(structure.location)
+    end
     scope_remove(scope, structure.name)
     return true, patterns(
         pattern_stack_fetch(var_index),
@@ -520,15 +621,15 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_if_statement(structure, scope)
-    local condition_ok, condition_pattern, condition_msg = compile(structure.condition, scope)
+    local condition_ok, condition_pattern, condition_msg = compile_structure(structure.condition, scope)
     if not condition_ok then
         return false, {}, "compile if condition failed:\n"..condition_msg
     end
-    local if_block_ok, if_block_pattern, if_block_msg = compile(structure.if_block, scope)
+    local if_block_ok, if_block_pattern, if_block_msg = compile_structure(structure.if_block, scope)
     if not if_block_ok then
         return false, {}, "compile if block failed:\n"..if_block_msg
     end
-    local else_block_ok, else_block_pattern, else_block_msg = compile(structure.else_block, scope)
+    local else_block_ok, else_block_pattern, else_block_msg = compile_structure(structure.else_block, scope)
     if not else_block_ok then
         return false, {}, "compile else block failed:\n"..else_block_msg
     end
@@ -546,15 +647,21 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_block(structure, scope)
+    local block_scope_offset = scope.offset
     local pattern = {}
     for _, statement in ipairs(structure.structures) do
-        local statement_ok, statement_pattern, statement_msg = compile(statement, scope)
+        local statement_ok, statement_pattern, statement_msg = compile_structure(statement, scope)
         if not statement_ok then
             return false, {}, "compile block statement failed:\n"..statement_msg
         end
         list_combine(pattern, statement_pattern)
     end
-    return true, pattern, "ok"
+    local scope_excess = scope.offset - block_scope_offset
+    scope_shift(scope, -scope_excess)
+    return true, patterns(
+        pattern,
+        pattern_remove(scope_excess)
+    ), "ok"
 end
 
 ---compiles a structure into a pattern
@@ -563,7 +670,7 @@ end
 ---@return boolean ok
 ---@return table pattern
 ---@return string msg
-function compile(structure, scope)
+function compile_structure(structure, scope)
     local compiler = ({
         block = compile_block,
         deletion = compile_deletion,
@@ -572,11 +679,17 @@ function compile(structure, scope)
         value = compile_value,
         index = compile_index,
         if_statement = compile_if_statement,
+        call = compile_call,
+        bare_value = compile_bare_value,
     })[structure.type]
     if compiler then
         return compiler(structure.value, scope)
     end
     return false, {}, "unknown structure type '"..tostring(structure.type).."' at "..tokeniser.location_string(structure.location)
+end
+
+local function compile(structure)
+    return compile_structure(structure, scope_new())
 end
 
 return {

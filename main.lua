@@ -27,7 +27,7 @@ local structure_file = io.open("structure.json", "w")
 structure_file:write(table_to_json(structure))
 structure_file:close()
 
-local compiled_ok, pattern, compiled_msg = compiler.compile(structure, {}, 0)
+local compiled_ok, pattern, compiled_msg = compiler.compile(structure)
 if not compiled_ok then
     print("error compiling:\n"..compiled_msg)
     return

@@ -78,6 +78,7 @@ end
 local test_parse_expression
 local test_parse_block
 local test_parse_function
+
 ---attempts to parse an index from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -103,6 +104,44 @@ local function test_parse_index(tokens, index)
     index = index + 1
     return true, index, value_structure, "ok"
 end
+
+---attempts to parse a function call from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_call(tokens, index)
+    local open_bracket_token = get_token(tokens, index)
+    if open_bracket_token.type ~= "paren_open" then
+        return false, index, {}, "missing opening bracket for function call at "..tokeniser.location_string(open_bracket_token.location)
+    end
+    index = index + 1
+    local args = {}
+    local no_arg_token = get_token(tokens, index)
+    if no_arg_token.type ~= "paren_close" then
+        while true do
+            local value_ok, value_structure, value_msg
+            value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+            if not value_ok then
+                return false, index, {}, "failed to parse function call argument "..(#args + 1)..":\n"..value_msg
+            end
+            table.insert(args, value_structure)
+            local comma_token = get_token(tokens, index)
+            if comma_token.type == "paren_close" then
+                break
+            end
+            if comma_token.type ~= "comma" then
+                return false, index, {}, "expected comma for function call argument "..(#args + 1).." at "..tokeniser.location_string(comma_token.location)
+            end
+            index = index + 1
+        end
+    end
+    index = index + 1
+    return true, index, args, "ok"
+end
+
 ---attempts to parse a value from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -191,23 +230,39 @@ local function test_parse_value(tokens, index)
     }
     while true do
         local open_bracket_token = get_token(tokens, index)
-        if open_bracket_token.type ~= "index_open" then
+        if open_bracket_token.type == "index_open" then
+            local index_ok, index_structure, index_msg
+            index_ok, index, index_structure, index_msg = test_parse_index(tokens, index)
+            if not index_ok then
+                return false, index, {}, "failed to parse index:\n"..index_msg
+            end
+            structure = {
+                type = "index",
+                location = structure.location,
+                location_end = index_structure.location_end,
+                value = {
+                    value = structure,
+                    index = index_structure
+                }
+            }
+        elseif open_bracket_token.type == "paren_open" then
+            local call_ok, call_structure, call_msg
+            call_ok, index, call_structure, call_msg = test_parse_call(tokens, index)
+            if not call_ok then
+                return false, index, {}, "failed to parse function call:\n"..call_msg
+            end
+            structure = {
+                type = "call",
+                location = structure.location,
+                location_end = call_structure.location_end,
+                value = {
+                    value = structure,
+                    args = call_structure
+                }
+            }
+        else
             break
         end
-        local index_ok, index_structure, index_msg
-        index_ok, index, index_structure, index_msg = test_parse_index(tokens, index)
-        if not index_ok then
-            return false, index, {}, "failed to parse index:\n"..index_msg
-        end
-        structure = {
-            type = "index",
-            location = structure.location,
-            location_end = index_structure.location_end,
-            value = {
-                value = structure,
-                index = index_structure
-            }
-        }
     end
     return true, index, structure, "ok"
 end
@@ -415,6 +470,32 @@ local function test_parse_declaration_statement(tokens, index)
     }, "ok"
 end
 
+---attempts to parse a bare value from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_bare_value(tokens, index)
+    local start_token = get_token(tokens, index)
+    local value_ok, value_structure, value_msg
+    value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+    if not value_ok then
+        return false, index, {}, "failed to parse bare value expression:\n"..value_msg
+    end
+    local semicolon_token = get_token(tokens, index)
+    if semicolon_token.type ~= "semicolon" then
+        return false, index, {}, "missing semicolon"
+    end
+    index = index + 1
+    return true, index, {
+        type = "bare_value",
+        location = start_token.location,
+        location_end = semicolon_token.location_end,
+        value = value_structure
+    }, "ok"
+end
 
 ---attempts to parse a deletion statement from tokens starting at the given index
 ---@param tokens table
@@ -628,7 +709,8 @@ local function test_parse_statement(tokens, index)
         {name = "declaration_statement", parser = test_parse_declaration_statement},
         {name = "deletion_statement", parser = test_parse_deletion_statement},
         {name = "assignment_statement", parser = test_parse_assignment_statement},
-        {name = "if_statement", parser = test_parse_if_statement}
+        {name = "if_statement", parser = test_parse_if_statement},
+        {name = "bare_value", parser = test_parse_bare_value}
     }) do
         local ok, new_index, structure, msg = statement_parser_pair.parser(tokens, index)
         if ok then
