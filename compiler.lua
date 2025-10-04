@@ -34,6 +34,7 @@ local operators = {
 local function scope_new()
     return {
         offset = 1,
+        function_scopes = {},
         names = {}
     }
 end
@@ -166,17 +167,24 @@ local function pattern_number(value)
             numbers[int_value]
         )
     end
-    if int_value % 10 == 0 then
-        return patterns(
-            pattern_number(math.floor(int_value / 10)),
+    local tens_pattern = {}
+    local tens = math.floor(int_value / 10)
+    if tens == 1 then
+        tens_pattern = patterns(
+            "ten"
+        )
+    else
+        tens_pattern = patterns(
+            pattern_number(tens),
             "ten",
             "multiplicative_distillation"
         )
     end
+    if int_value % 10 == 0 then
+        return tens_pattern
+    end
     return patterns(
-        pattern_number(math.floor(int_value / 10)),
-        "ten",
-        "multiplicative_distillation",
+        tens_pattern,
         numbers[int_value % 10],
         "additive_distillation"
     )
@@ -258,11 +266,6 @@ local function pattern_stack_throw(index)
     elseif index == 4 then
         return patterns(
             pattern_number(18),
-            "swindlers_gambit"
-        )
-    elseif index == 5 then
-        return patterns(
-            pattern_number(105),
             "swindlers_gambit"
         )
     end
@@ -428,16 +431,7 @@ local function compile_value(structure, scope)
         if not body_ok then
             return false, {}, "function body failed to compile:\n"..body_msg
         end
-        for _, name in ipairs(structure.value.params) do
-            scope_remove(scope, name)
-        end
-        return true, escape_pattern(
-            patterns(
-                body_pattern,
-                pattern_remove(#structure.value.params),
-                "nullary_reflection"
-            )
-        ), "ok"
+        return true, escape_pattern(body_pattern), "ok"
     elseif structure.type == "name" then
         local var_index = scope_find(scope, structure.value)
         if var_index < 1 then
@@ -617,6 +611,34 @@ local function compile_deletion(structure, scope)
     ), "ok"
 end
 
+---compiles a return structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_return(structure, scope)
+    local value_ok, value_pattern, value_msg = compile_structure(structure.value, scope)
+    if not value_ok then
+        return false, {}, "compile return value failed:\n"..value_msg
+    end
+    local scope_excess = scope.offset - scope.function_scopes[#scope.function_scopes]
+    scope_shift(scope, -scope_excess)
+    scope_shift(scope, -structure.arg_count)
+    local jump_pattern = {}
+    if not structure.tail then
+        jump_pattern = {
+            "charons_gambit"
+        }
+    end
+    return true, patterns(
+        value_pattern,
+        pattern_stack_throw(structure.arg_count + scope_excess + 1),
+        pattern_remove(structure.arg_count + scope_excess),
+        jump_pattern
+    ), "ok"
+end
+
 ---compiles an if statement structure into a pattern
 ---@param structure table
 ---@param scope table
@@ -650,7 +672,7 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_block(structure, scope)
-    local block_scope_offset = scope.offset
+    table.insert(scope.function_scopes, scope.offset)
     local pattern = {}
     for _, statement in ipairs(structure.structures) do
         local statement_ok, statement_pattern, statement_msg = compile_structure(statement, scope)
@@ -659,12 +681,12 @@ local function compile_block(structure, scope)
         end
         list_combine(pattern, statement_pattern)
     end
-    local scope_excess = scope.offset - block_scope_offset
-    scope_shift(scope, -scope_excess)
-    return true, patterns(
-        pattern,
-        pattern_remove(scope_excess)
-    ), "ok"
+    local scope_excess = scope.offset - table.remove(scope.function_scopes)
+    if structure.needs_cleanup then
+        scope_shift(scope, -scope_excess)
+        list_combine(pattern, pattern_remove(scope_excess))
+    end
+    return true, pattern, "ok"
 end
 
 ---compiles a structure into a pattern
@@ -683,6 +705,7 @@ function compile_structure(structure, scope)
         index = compile_index,
         if_statement = compile_if_statement,
         call = compile_call,
+        return_statement = compile_return,
         bare_value = compile_bare_value,
     })[structure.type]
     if compiler then

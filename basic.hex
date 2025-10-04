@@ -1,4 +1,5 @@
 
 function(param1, param2) {
     let b = param1 + param2;
+    return b;
 }(1, 2);

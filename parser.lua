@@ -211,6 +211,40 @@ local function test_parse_value(tokens, index)
         if not function_ok then
             return false, index, {}, "failed to parse function:\n"..function_msg
         end
+        local function_structures = function_structure.body.value.structures
+        for i, statement_structure in pairs(function_structures) do
+            if statement_structure.type == "return_statement" then
+                function_structures[i].value.arg_count = #function_structure.params
+            end
+        end
+        local has_return = false
+        if function_structures then
+            local last_structure = function_structures[#function_structures]
+            if last_structure.type == "return_statement" then
+                has_return = true
+                last_structure.value.tail = true
+            end
+        end
+        if not has_return then
+            table.insert(function_structures, {
+                type = "return_statement",
+                location = function_structure.location_end,
+                location_end = function_structure.location_end,
+                value = {
+                    arg_count = #function_structure.params,
+                    tail = true,
+                    value = {
+                        type = "value",
+                        location = function_structure.location_end,
+                        location_end = function_structure.location_end,
+                        value = {
+                            type = "value_null"
+                        }
+                    }
+                }
+            })
+        end
+        function_structure.body.value.needs_cleanup = false
         value = {
             type = "function",
             value = function_structure
@@ -530,6 +564,49 @@ local function test_parse_deletion_statement(tokens, index)
     }, "ok"
 end
 
+---attempts to parse a return statement from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_return_statement(tokens, index)
+    local return_token = get_token(tokens, index)
+    if return_token.type ~= "statement_return" then
+        return false, index, {}, "return requires a return token"
+    end
+    index = index + 1
+    local return_structure = {
+        type = "value",
+        location = return_token.location,
+        location_end = return_token.location_end,
+        value = {
+            type = "value_null"
+        }
+    }
+    local value_ok, value_structure, value_msg
+    value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+    if value_ok then
+        return_structure = value_structure
+    end
+    local semicolon_token = get_token(tokens, index)
+    if semicolon_token.type ~= "semicolon" then
+        return false, index, {}, "missing semicolon"
+    end
+    index = index + 1
+    return true, index, {
+        type = "return_statement",
+        location = return_token.location,
+        location_end = semicolon_token.location_end,
+        value = {
+            arg_count = 0,  -- to be filled in later by function
+            tail = false,   -- set to indicate this return statement is at the end of a function
+            value = return_structure
+        }
+    }, "ok"
+end
+
 ---attempts to parse an if statement from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -545,7 +622,8 @@ local function test_parse_if_statement(tokens, index)
         location = get_token(tokens, index).location,
         location_end = get_token(tokens, index).location,
         value = {
-            structures = {}
+            structures = {},
+            needs_cleanup = true
         }
     }
     while true do
@@ -646,26 +724,6 @@ function test_parse_function(tokens, index)
                 return false, index, {}, "function parameter name missing at "..tokeniser.location_string(param_name_token.location)
             end
             index = index + 1
-            -- local default_value = {
-            --     type = "value",
-            --     value = {
-            --         type = "value_null"
-            --     }
-            -- }
-            -- local default_token = get_token(tokens, index)
-            -- if default_token.type == "assignment" then
-            --     index = index + 1
-            --     local value_ok, value_structure, value_msg
-            --     value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
-            --     if not value_ok then
-            --         return false, index, {}, "failed parsing function default value:\n"..value_msg
-            --     end
-            --     default_value = value_structure
-            -- end
-            -- table.insert(params, {
-            --     name = name_token.value,
-            --     default = default_value
-            -- })
             table.insert(params, param_name_token.value)
             local comma_token = get_token(tokens, index)
             if comma_token.type ~= "comma" then
@@ -710,7 +768,8 @@ local function test_parse_statement(tokens, index)
         {name = "deletion_statement", parser = test_parse_deletion_statement},
         {name = "assignment_statement", parser = test_parse_assignment_statement},
         {name = "if_statement", parser = test_parse_if_statement},
-        {name = "bare_value", parser = test_parse_bare_value}
+        {name = "bare_value", parser = test_parse_bare_value},
+        {name = "return_statement", parser = test_parse_return_statement}
     }) do
         local ok, new_index, structure, msg = statement_parser_pair.parser(tokens, index)
         if ok then
@@ -748,7 +807,8 @@ function test_parse_block(tokens, index)
         location = start_token.location,
         location_end = tokens[index - 1].location_end,
         value = {
-            structures = structures
+            structures = structures,
+            needs_cleanup = true
         }
     }, "ok"
 end
@@ -759,9 +819,9 @@ local function parse(tokens)
         local offending_token = get_token(tokens, index)
         return false, {}, "error parsing at "..tokeniser.location_string(offending_token.location).."\n"..msg
     end
+    structure.value.needs_cleanup = false
     return true, structure, "ok"
 end
-
 
 return {
     parse = parse

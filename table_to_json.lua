@@ -46,6 +46,8 @@ local function table_to_json(tbl)
             end
         elseif type(o) == "number" then
             return tostring(o)
+        elseif type(o) == "boolean" then
+            return tostring(o)
         elseif o == nil then
             return "null"
         else
