@@ -1,24 +1,6 @@
-let loop;
-loop = function(a, b) {
-    if (b == 0) {
-        return 0;
-    }
-    return a + loop(a, b-1);
-};
-loop(3, 3);
-
-for (value in list) {
-
-}
-
-for (value in [1, 2, 3]) {
-
-}
-
-for (i = 1 -> 10) {
-
-}
-
-for (i -> 10) {
-
-}
+let a = 5;
+let b = 6;
+a++;
+a--;
+a++;
+a==b;

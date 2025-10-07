@@ -364,14 +364,14 @@ function test_parse_expression(tokens, index)
     return true, index, value_structures[1], "ok"
 end
 
----attempts to parse an assignment statement from tokens starting at the given index
+---attempts to parse an assignment name from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
 ---@return boolean ok
 ---@return integer index
 ---@return table structure
 ---@return string msg
-local function test_parse_assignment_statement(tokens, index)
+local function test_parse_assignment_name(tokens, index)
     local name_token = get_token(tokens, index)
     if name_token.type ~= "name" then
         return false, index, {}, "variable assignment requires a name"
@@ -389,6 +389,26 @@ local function test_parse_assignment_statement(tokens, index)
             return false, index, {}, "failed to parse variable assignment index:\n"..index_msg
         end
         table.insert(indicies, index_structure)
+    end
+    return true, index, {
+        name = name_token.value,
+        indicies = indicies
+    }, "ok"
+end
+
+---attempts to parse an assignment statement from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_assignment_statement(tokens, index)
+    local start_token = get_token(tokens, index)
+    local name_ok, name_structure, name_msg
+    name_ok, index, name_structure, name_msg = test_parse_assignment_name(tokens, index)
+    if not name_ok then
+        return false, index, {}, "failed to parse variable name:\n"..name_msg
     end
     local op_token = get_token(tokens, index)
     if not (op_token.type == "assignment" or starts_with(op_token.type, "op_")) then
@@ -417,17 +437,17 @@ local function test_parse_assignment_statement(tokens, index)
     if acc_op_token then
         expression_structure = {
             type = "expression",
-            location = name_token.location,
-            location_end = tokens[index - 1].location_end,
+            location = start_token.location,
+            location_end = semicolon_token.location_end,
             value = {
                 op = acc_op_token.type,
                 left = {
                     type = "value",
-                    location = name_token.location,
-                    location_end = name_token.location_end,
+                    location = start_token.location,
+                    location_end = start_token.location_end,
                     value = {
                         type = "name",
-                        value = name_token.value
+                        value = name_structure.name
                     }
                 },
                 right = expression_structure
@@ -436,17 +456,83 @@ local function test_parse_assignment_statement(tokens, index)
     end
     return true, index, {
         type = "variable_assignment",
-        location = name_token.location,
+        location = start_token.location,
         location_end = semicolon_token.location_end,
         value = {
-            name = name_token.value,
-            indicies = indicies,
+            variable = name_structure,
             is_declared = true,
             value = expression_structure
         }
     }, "ok"
 end
 
+---attempts to parse a variable increment/decrement statement from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_modifier_statement(tokens, index)
+    local start_token = get_token(tokens, index)
+    local name_ok, name_structure, name_msg
+    name_ok, index, name_structure, name_msg = test_parse_assignment_name(tokens, index)
+    if not name_ok then
+        return false, index, {}, "failed to parse variable name:\n"..name_msg
+    end
+    local modifier
+    local modifier_token = get_token(tokens, index)
+    if modifier_token.type == "increment" then
+        modifier = "op_add"
+    end
+    if modifier_token.type == "decrement" then
+        modifier = "op_sub"
+    end
+    if not modifier then
+        return false, index, {}, "failed to parse modifier"
+    end
+    index = index + 1
+    local semicolon_token = get_token(tokens, index)
+    if semicolon_token.type ~= "semicolon" then
+        return false, index, {}, "missing semicolon"
+    end
+    index = index + 1
+    return true, index, {
+        type = "variable_assignment",
+        location = start_token.location,
+        location_end = semicolon_token.location_end,
+        value = {
+            variable = name_structure,
+            is_declared = true,
+            value = {
+            type = "expression",
+            location = start_token.location,
+            location_end = semicolon_token.location_end,
+            value = {
+                op = modifier,
+                left = {
+                    type = "value",
+                    location = start_token.location,
+                    location_end = start_token.location_end,
+                    value = {
+                        type = "name",
+                        value = name_structure.name
+                    }
+                },
+                right = {
+                    type = "value",
+                    location = semicolon_token.location,
+                    location_end = semicolon_token.location_end,
+                    value = {
+                        type = "value_number",
+                        value = 1
+                    }
+                }
+            }
+        }
+        }
+    }, "ok"
+end
 
 ---attempts to parse a declaration statement from tokens starting at the given index
 ---@param tokens table
@@ -467,7 +553,7 @@ local function test_parse_declaration_statement(tokens, index)
     end
     local assignment_ok, new_index, assignment_structure, _ = test_parse_assignment_statement(tokens, index)
     if assignment_ok then
-        if #assignment_structure.value.indicies > 0 then
+        if #assignment_structure.value.variable.indicies > 0 then
             return false, index, {}, "cannot declare a variable with indicies"
         end
         assignment_structure.value.is_declared = false
@@ -484,7 +570,10 @@ local function test_parse_declaration_statement(tokens, index)
         location = declare_token.location,
         location_end = semicolon_token.location_end,
         value = {
-            name = name_token.value,
+            variable = {
+                name = name_token.value,
+                indicies = {}
+            },
             indicies = {},
             is_declared = false,
             value = {
@@ -760,6 +849,7 @@ local function test_parse_statement(tokens, index)
         {name = "declaration_statement", parser = test_parse_declaration_statement},
         {name = "deletion_statement", parser = test_parse_deletion_statement},
         {name = "assignment_statement", parser = test_parse_assignment_statement},
+        {name = "modifier", parser = test_parse_modifier_statement},
         {name = "if_statement", parser = test_parse_if_statement},
         {name = "bare_value", parser = test_parse_bare_value},
         {name = "return_statement", parser = test_parse_return_statement}

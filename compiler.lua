@@ -529,21 +529,21 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_variable_assignment(structure, scope)
-    local var_index = scope_find(scope, structure.name)
+    local var_index = scope_find(scope, structure.variable.name)
     if var_index < 1 and structure.is_declared then
-        return false, {}, "variable '"..structure.name.."' not defined at "..tokeniser.location_string(structure.value.location)
+        return false, {}, "variable '"..structure.variable.name.."' not defined at "..tokeniser.location_string(structure.value.location)
     end
-    scope_shift(scope, 2 * #structure.indicies)
+    scope_shift(scope, 2 * #structure.variable.indicies)
     local value_ok, value_pattern, value_msg = compile_structure(structure.value, scope)
     if not value_ok then
         return false, {}, "compile variable assignment value failed:\n"..value_msg
     end
-    scope_shift(scope, -2 * #structure.indicies)
+    scope_shift(scope, -2 * #structure.variable.indicies)
     if not structure.is_declared then
-        scope_add(scope, structure.name)
+        scope_add(scope, structure.variable.name)
         return true, value_pattern, "ok"
     end
-    if #structure.indicies == 0 then
+    if #structure.variable.indicies == 0 then
         return true, patterns(
             value_pattern,
             pattern_stack_throw_copy(var_index)
@@ -551,12 +551,12 @@ local function compile_variable_assignment(structure, scope)
     end
     local pattern = pattern_stack_fetch_copy(var_index)
     scope_shift(scope, 1)
-    for i, index_structure in ipairs(structure.indicies) do
+    for i, index_structure in ipairs(structure.variable.indicies) do
         local index_ok, index_pattern, index_msg = compile_structure(index_structure, scope)
         if not index_ok then
             return false, {}, "compile variable assignment index "..i.." failed:\n"..index_msg
         end
-        if i == #structure.indicies then
+        if i == #structure.variable.indicies then
             list_combine(pattern, index_pattern)
             scope_shift(scope, 1)
         else
@@ -569,7 +569,7 @@ local function compile_variable_assignment(structure, scope)
         end
     end
     list_combine(pattern, value_pattern)
-    for _ = 1, #structure.indicies do
+    for _ = 1, #structure.variable.indicies do
         list_combine(pattern, patterns(
             "surgeons_exaltation"
         ))

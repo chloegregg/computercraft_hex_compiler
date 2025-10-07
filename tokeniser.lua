@@ -10,6 +10,8 @@ local token_patterns = {
     {name = "statement_return", pattern = "(return)[^%w]"},
     {name = "statement_declare", pattern = "(let)[^%w]"},
     {name = "statement_delete", pattern = "(delete)[^%w]"},
+    {name = "statement_by", pattern = "(by)[^%w]"},
+    {name = "statement_arrow", pattern = "(%->)[^%w]"},
     {name = "value_null", pattern = "null"},
     {name = "value_bool", pattern = "(true)"},
     {name = "value_bool", pattern = "(false)"},
