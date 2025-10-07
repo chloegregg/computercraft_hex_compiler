@@ -1,5 +1,8 @@
-
-function(param1, param2) {
-    let b = param1 + param2;
-    return b;
-}(1, 2);
+let loop;
+loop = function(a, b) {
+    if (b == 0) {
+        return 0;
+    }
+    return a + loop(a, b-1);
+};
+loop(3, 3);

@@ -212,11 +212,6 @@ local function test_parse_value(tokens, index)
             return false, index, {}, "failed to parse function:\n"..function_msg
         end
         local function_structures = function_structure.body.value.structures
-        for i, statement_structure in pairs(function_structures) do
-            if statement_structure.type == "return_statement" then
-                function_structures[i].value.arg_count = #function_structure.params
-            end
-        end
         local has_return = false
         if function_structures then
             local last_structure = function_structures[#function_structures]
@@ -231,7 +226,6 @@ local function test_parse_value(tokens, index)
                 location = function_structure.location_end,
                 location_end = function_structure.location_end,
                 value = {
-                    arg_count = #function_structure.params,
                     tail = true,
                     value = {
                         type = "value",
@@ -244,7 +238,6 @@ local function test_parse_value(tokens, index)
                 }
             })
         end
-        function_structure.body.value.needs_cleanup = false
         value = {
             type = "function",
             value = function_structure
@@ -491,6 +484,7 @@ local function test_parse_declaration_statement(tokens, index)
         location_end = semicolon_token.location_end,
         value = {
             name = name_token.value,
+            indicies = {},
             is_declared = false,
             value = {
                 type = "value",
@@ -600,7 +594,6 @@ local function test_parse_return_statement(tokens, index)
         location = return_token.location,
         location_end = semicolon_token.location_end,
         value = {
-            arg_count = 0,  -- to be filled in later by function
             tail = false,   -- set to indicate this return statement is at the end of a function
             value = return_structure
         }
@@ -622,8 +615,7 @@ local function test_parse_if_statement(tokens, index)
         location = get_token(tokens, index).location,
         location_end = get_token(tokens, index).location,
         value = {
-            structures = {},
-            needs_cleanup = true
+            structures = {}
         }
     }
     while true do
@@ -807,8 +799,7 @@ function test_parse_block(tokens, index)
         location = start_token.location,
         location_end = tokens[index - 1].location_end,
         value = {
-            structures = structures,
-            needs_cleanup = true
+            structures = structures
         }
     }, "ok"
 end
@@ -819,7 +810,6 @@ local function parse(tokens)
         local offending_token = get_token(tokens, index)
         return false, {}, "error parsing at "..tokeniser.location_string(offending_token.location).."\n"..msg
     end
-    structure.value.needs_cleanup = false
     return true, structure, "ok"
 end
 

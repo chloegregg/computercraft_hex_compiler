@@ -35,6 +35,7 @@ local function scope_new()
     return {
         offset = 1,
         function_scopes = {},
+        block_scopes = {},
         names = {}
     }
 end
@@ -424,10 +425,13 @@ local function compile_value(structure, scope)
             "flocks_gambit"
         ), "ok"
     elseif structure.type == "function" then
+        table.insert(scope.function_scopes, scope.offset)
         for _, name in ipairs(structure.value.params) do
             scope_add(scope, name)
         end
         local body_ok, body_pattern, body_msg = compile_structure(structure.value.body, scope)
+        local scope_excess = scope.offset - table.remove(scope.function_scopes)
+        scope_shift(scope, -scope_excess)
         if not body_ok then
             return false, {}, "function body failed to compile:\n"..body_msg
         end
@@ -602,7 +606,7 @@ end
 local function compile_deletion(structure, scope)
     local var_index = scope_find(scope, structure.name)
     if var_index < 1 then
-        return false, {}, "variable '"..structure.name.."' not defined at "..tokeniser.location_string(structure.location)
+        return false, {}, "variable '"..structure.name.."' not defined"
     end
     scope_remove(scope, structure.name)
     return true, patterns(
@@ -623,8 +627,6 @@ local function compile_return(structure, scope)
         return false, {}, "compile return value failed:\n"..value_msg
     end
     local scope_excess = scope.offset - scope.function_scopes[#scope.function_scopes]
-    scope_shift(scope, -scope_excess)
-    scope_shift(scope, -structure.arg_count)
     local jump_pattern = {}
     if not structure.tail then
         jump_pattern = {
@@ -633,8 +635,8 @@ local function compile_return(structure, scope)
     end
     return true, patterns(
         value_pattern,
-        pattern_stack_throw(structure.arg_count + scope_excess + 1),
-        pattern_remove(structure.arg_count + scope_excess),
+        pattern_stack_throw(scope_excess + 1),
+        pattern_remove(scope_excess),
         jump_pattern
     ), "ok"
 end
@@ -672,7 +674,7 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_block(structure, scope)
-    table.insert(scope.function_scopes, scope.offset)
+    table.insert(scope.block_scopes, scope.offset)
     local pattern = {}
     for _, statement in ipairs(structure.structures) do
         local statement_ok, statement_pattern, statement_msg = compile_structure(statement, scope)
@@ -681,9 +683,9 @@ local function compile_block(structure, scope)
         end
         list_combine(pattern, statement_pattern)
     end
-    local scope_excess = scope.offset - table.remove(scope.function_scopes)
+    local scope_excess = scope.offset - table.remove(scope.block_scopes)
+    scope_shift(scope, -scope_excess)
     if structure.needs_cleanup then
-        scope_shift(scope, -scope_excess)
         list_combine(pattern, pattern_remove(scope_excess))
     end
     return true, pattern, "ok"
@@ -709,7 +711,11 @@ function compile_structure(structure, scope)
         bare_value = compile_bare_value,
     })[structure.type]
     if compiler then
-        return compiler(structure.value, scope)
+        local compiled_ok, compiled_pattern, compiled_msg = compiler(structure.value, scope)
+        if not compiled_ok then
+            return false, {}, "At "..tokeniser.location_string(structure.location).." "..compiled_msg
+        end
+        return true, compiled_pattern, "ok"
     end
     return false, {}, "unknown structure type '"..tostring(structure.type).."' at "..tokeniser.location_string(structure.location)
 end
