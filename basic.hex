@@ -6,3 +6,19 @@ loop = function(a, b) {
     return a + loop(a, b-1);
 };
 loop(3, 3);
+
+for (value in list) {
+
+}
+
+for (value in [1, 2, 3]) {
+
+}
+
+for (i = 1 -> 10) {
+
+}
+
+for (i -> 10) {
+
+}

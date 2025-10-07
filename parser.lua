@@ -4,8 +4,9 @@ local table_to_json = require("table_to_json")
 local op_order = {
     {"op_exp"}, -- exponents first
     {"op_mul", "op_div"}, -- then multiplication and division
-    {"op_add", "op_sub"}, -- then addition and subtraction
-    {"op_eql", "op_grt", "op_gte", "op_lst", "op_lte", "op_neq"} -- then boolean
+    {"op_add", "op_sub"}, -- then addition and subtraction,
+    {"op_eql", "op_grt", "op_gte", "op_lst", "op_lte", "op_neq"}, -- then boolean conditions
+    {"op_and", "op_or", "op_xor"}, -- then boolean combinations
 }
 
 ---check if a string has a substring at a location
