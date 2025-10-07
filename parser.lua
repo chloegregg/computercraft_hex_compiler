@@ -784,6 +784,71 @@ local function test_parse_if_statement(tokens, index)
     return true, index, final_structure, "ok"
 end
 
+---attempts to parse a foreach loop from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_foreach_loop(tokens, index)
+    local for_token = get_token(tokens, index)
+    if for_token.type ~= "statement_for" then
+        return false, index, {}, "missing for token"
+    end
+    index = index + 1
+    local open_paren_token = get_token(tokens, index)
+    if open_paren_token.type ~= "paren_open" then
+        return false, index, {}, "missing open parenthesis"
+    end
+    index = index + 1
+    local name_token = get_token(tokens, index)
+    if name_token.type ~= "name" then
+        return false, index, {}, "missing iterator name"
+    end
+    index = index + 1
+    local in_token = get_token(tokens, index)
+    if in_token.type ~= "statement_in" then
+        return false, index, {}, "missing in token"
+    end
+    index = index + 1
+    local value_ok, value_structure, value_msg
+    value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+    if not value_ok then
+        return false, index, {}, "failed to parse iterator value:\n"..value_msg
+    end
+    local close_paren_token = get_token(tokens, index)
+    if close_paren_token.type ~= "paren_close" then
+        return false, index, {}, "missing close parenthesis"
+    end
+    index = index + 1
+    local open_block_token = get_token(tokens, index)
+    if open_block_token.type ~= "block_open" then
+        return false, index, {}, "missing open block"
+    end
+    index = index + 1
+    local block_ok, block_structure, block_msg
+    block_ok, index, block_structure, block_msg = test_parse_block(tokens, index)
+    if not block_ok then
+        return false, index, {}, "failed to parse block:\n"..block_msg
+    end
+    local close_block_token = get_token(tokens, index)
+    if close_block_token.type ~= "block_close" then
+        return false, index, {}, "missing close block"
+    end
+    index = index + 1
+    return true, index, {
+        type = "foreach",
+        location = for_token.location,
+        location_end = close_block_token.location_end,
+        value = {
+            name = name_token.value,
+            iterator = value_structure,
+            block = block_structure
+        }
+    }, "ok"
+end
+
 ---attempts to parse a function (excluding the function statement) from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -851,6 +916,7 @@ local function test_parse_statement(tokens, index)
         {name = "assignment_statement", parser = test_parse_assignment_statement},
         {name = "modifier", parser = test_parse_modifier_statement},
         {name = "if_statement", parser = test_parse_if_statement},
+        {name = "foreach_loop", parser = test_parse_foreach_loop},
         {name = "bare_value", parser = test_parse_bare_value},
         {name = "return_statement", parser = test_parse_return_statement}
     }) do

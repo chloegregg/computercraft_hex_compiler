@@ -667,6 +667,30 @@ local function compile_if_statement(structure, scope)
     ), "ok"
 end
 
+---compiles a foreach loop structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_foreach(structure, scope)
+    local iterator_ok, iterator_pattern, iterator_msg = compile_structure(structure.iterator, scope)
+    if not iterator_ok then
+        return false, {}, "compile foreach iterator failed:\n"..iterator_msg
+    end
+    scope_add(scope, structure.name)
+    local block_ok, block_pattern, block_msg = compile_structure(structure.block, scope)
+    if not block_ok then
+        return false, {}, "compile foreach block failed:\n"..block_msg
+    end
+    scope_remove(scope, structure.name)
+    return true, patterns(
+        escape_pattern(block_pattern),
+        iterator_pattern,
+        "thoths_gambit"
+    ), "ok"
+end
+
 ---compiles a block structure into a pattern
 ---@param structure table
 ---@param scope table
@@ -706,6 +730,7 @@ function compile_structure(structure, scope)
         value = compile_value,
         index = compile_index,
         if_statement = compile_if_statement,
+        foreach = compile_foreach,
         call = compile_call,
         return_statement = compile_return,
         bare_value = compile_bare_value,
