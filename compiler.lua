@@ -415,6 +415,28 @@ local function compile_value(structure, scope)
             pattern_number(#structure.value),
             "flocks_gambit"
         ), "ok"
+    elseif structure.type == "vector" then
+        local x_ok, x_pattern, x_msg = compile_structure(structure.value.x, scope)
+        if not x_ok then
+            return false, {}, "x failed to compile:\n"..x_msg
+        end
+        scope_shift(scope, 1)
+        local y_ok, y_pattern, y_msg = compile_structure(structure.value.y, scope)
+        if not y_ok then
+            return false, {}, "y failed to compile:\n"..y_msg
+        end
+        scope_shift(scope, 1)
+        local z_ok, z_pattern, z_msg = compile_structure(structure.value.z, scope)
+        if not z_ok then
+            return false, {}, "z failed to compile:\n"..z_msg
+        end
+        scope_shift(scope, -2)
+        return true, patterns(
+            x_pattern,
+            y_pattern,
+            z_pattern,
+            "vector_exaltation"
+        ), "ok"
     elseif structure.type == "function" then
         table.insert(scope.function_scopes, scope.offset)
         for _, name in ipairs(structure.value.params) do

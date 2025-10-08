@@ -206,6 +206,32 @@ local function test_parse_value(tokens, index)
             type = "list",
             value = list_value_structures
         }
+    elseif token.type == "block_open" then
+        local vector_value_structures = {}
+        for _, axis in ipairs({"x", "y", "z"}) do
+            local value_ok, value_structure, value_msg
+            value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+            if not value_ok then
+                return false, index, {}, "failed to parse vector value for "..axis.." component: \n"..value_msg
+            end
+            vector_value_structures[axis] = value_structure
+            if axis ~= "z" then
+                local comma_token = get_token(tokens, index)
+                if comma_token.type ~= "comma" then
+                    return false, index, {}, "expected comma after "..axis.." component at "..tokeniser.location_string(comma_token.location)
+                end
+                index = index + 1
+            end
+        end
+        local close_vector_token = get_token(tokens, index)
+        if close_vector_token.type ~= "block_close" then
+            return false, index, {}, "expected closing block token for vector"
+        end
+        index = index + 1
+        value = {
+            type = "vector",
+            value = vector_value_structures
+        }
     elseif token.type == "statement_function" then
         local function_ok, function_structure, function_msg
         function_ok, index, function_structure, function_msg = test_parse_function(tokens, index)

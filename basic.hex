@@ -1,4 +1,1 @@
-let max = 10;
-for (i = 2 -> max by 2) {
-    let a = i;
-}
+let a = {1, 2, 3};
