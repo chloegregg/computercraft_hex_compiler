@@ -838,12 +838,118 @@ local function test_parse_foreach_loop(tokens, index)
     end
     index = index + 1
     return true, index, {
-        type = "foreach",
+        type = "foreach_loop",
         location = for_token.location,
         location_end = close_block_token.location_end,
         value = {
             name = name_token.value,
             iterator = value_structure,
+            block = block_structure
+        }
+    }, "ok"
+end
+
+---attempts to parse a for loop from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_for_loop(tokens, index)
+    local for_token = get_token(tokens, index)
+    if for_token.type ~= "statement_for" then
+        return false, index, {}, "missing for token"
+    end
+    index = index + 1
+    local open_paren_token = get_token(tokens, index)
+    if open_paren_token.type ~= "paren_open" then
+        return false, index, {}, "missing open parenthesis"
+    end
+    index = index + 1
+    local name_token = get_token(tokens, index)
+    if name_token.type ~= "name" then
+        return false, index, {}, "missing iterator name"
+    end
+    index = index + 1
+    local start_structure, stop_structure, step_structure
+    local assignment_token = get_token(tokens, index)
+    if assignment_token.type == "assignment" then
+        index = index + 1
+        local start_ok, start_msg
+        start_ok, index, start_structure, start_msg = test_parse_expression(tokens, index)
+        if not start_ok then
+            return false, index, {}, "failed to parse start value:\n"..start_msg
+        end
+    else
+        start_structure = {
+            type = "value",
+            location = assignment_token.location_end,
+            location_end = assignment_token.location_end,
+            value = {
+                type = "value_number",
+                value = 1
+            }
+        }
+    end
+    local arrow_token = get_token(tokens, index)
+    if arrow_token.type ~= "statement_arrow" then
+        return false, index, {}, "missing arrow"
+    end
+    index = index + 1
+    local stop_ok, stop_msg
+    stop_ok, index, stop_structure, stop_msg = test_parse_expression(tokens, index)
+    if not stop_ok then
+        return false, index, {}, "failed to parse end value:\n"..stop_msg
+    end
+    local by_token = get_token(tokens, index)
+    if by_token.type == "statement_by" then
+        index = index + 1
+        local step_ok, step_msg
+        step_ok, index, step_structure, step_msg = test_parse_expression(tokens, index)
+        if not step_ok then
+            return false, index, {}, "failed to parse step value:\n"..step_msg
+        end
+    else
+        step_structure = {
+            type = "value",
+            location = by_token.location,
+            location_end = by_token.location,
+            value = {
+                type = "value_number",
+                value = 1
+            }
+        }
+    end
+    local close_paren_token = get_token(tokens, index)
+    if close_paren_token.type ~= "paren_close" then
+        return false, index, {}, "missing close parenthesis"
+    end
+    index = index + 1
+    local open_block_token = get_token(tokens, index)
+    if open_block_token.type ~= "block_open" then
+        return false, index, {}, "missing open block"
+    end
+    index = index + 1
+    local block_ok, block_structure, block_msg
+    block_ok, index, block_structure, block_msg = test_parse_block(tokens, index)
+    if not block_ok then
+        return false, index, {}, "failed to parse block:\n"..block_msg
+    end
+    local close_block_token = get_token(tokens, index)
+    if close_block_token.type ~= "block_close" then
+        return false, index, {}, "missing close block"
+    end
+    index = index + 1
+    return true, index, {
+        type = "for_loop",
+        location = for_token.location,
+        location_end = close_block_token.location_end,
+        value = {
+            name = name_token.value,
+            start = start_structure,
+            stop = stop_structure,
+            step = step_structure,
             block = block_structure
         }
     }, "ok"
@@ -917,6 +1023,7 @@ local function test_parse_statement(tokens, index)
         {name = "modifier", parser = test_parse_modifier_statement},
         {name = "if_statement", parser = test_parse_if_statement},
         {name = "foreach_loop", parser = test_parse_foreach_loop},
+        {name = "for_loop", parser = test_parse_for_loop},
         {name = "bare_value", parser = test_parse_bare_value},
         {name = "return_statement", parser = test_parse_return_statement}
     }) do

@@ -277,15 +277,6 @@ local function pattern_stack_throw(index)
         "speakers_distillation",
         "flocks_disintegration"
     )
-    -- old method
-    -- return patterns(
-    --     "huginns_gambit",
-    --     pattern_number(index - 1),
-    --     "flocks_gambit",
-    --     "muninns_reflection",
-    --     "jesters_gambit",
-    --     "flocks_disintegration"
-    -- )
 end
 
 ---creates a pattern to fetch a stack value without removing it
@@ -673,7 +664,7 @@ end
 ---@return boolean ok
 ---@return table pattern
 ---@return string msg
-local function compile_foreach(structure, scope)
+local function compile_foreach_loop(structure, scope)
     local iterator_ok, iterator_pattern, iterator_msg = compile_structure(structure.iterator, scope)
     if not iterator_ok then
         return false, {}, "compile foreach iterator failed:\n"..iterator_msg
@@ -687,7 +678,94 @@ local function compile_foreach(structure, scope)
     return true, patterns(
         escape_pattern(block_pattern),
         iterator_pattern,
-        "thoths_gambit"
+        "thoths_gambit",
+        pattern_remove(1)
+    ), "ok"
+end
+
+---compiles a for loop structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_for_loop(structure, scope)
+    scope_shift(scope, 1) -- step
+    scope_add(scope, structure.name)
+    local block_ok, block_pattern, block_msg = compile_structure(structure.block, scope)
+    if not block_ok then
+        return false, {}, "compile for block failed:\n"..block_msg
+    end
+    scope_remove(scope, structure.name)
+    scope_shift(scope, -1) -- step
+    if  structure.start.type == "value" and structure.start.value.type == "value_number"
+    and structure.stop.type  == "value" and structure.stop.value.type  == "value_number"
+    and structure.step.type  == "value" and structure.step.value.type  == "value_number" then
+        local start, stop, step =
+        structure.start.value.value,
+        structure.stop.value.value,
+        structure.step.value.value
+        local count = math.floor((stop - start) / step) + 1
+        return true, patterns(
+            escape_pattern(patterns(
+                "muninns_reflection",       -- <index> step index
+                block_pattern,              -- <index> step index
+                operators.op_add,           -- <index> new_index
+                "huginns_gambit"            -- <new_index>
+            )),
+            pattern_number(start),          -- <?> [code...] start
+            "huginns_gambit",               -- <start> [code...]
+            pattern_number(step),           -- <start> [code...] step
+            pattern_number(count),          -- <start> [code...] step count
+            "gemini_gambit",                -- <start> [code...] step...
+            pattern_number(count),          -- <start> [code...] step... count
+            "flocks_gambit",                -- <start> [code...] [step...]
+            "thoths_gambit",                -- <start> [returns...]
+            pattern_remove(1)               -- <start>
+        ), "ok"
+    end
+    scope_shift(scope, 1) -- [code...]
+    local start_ok, start_pattern, start_msg = compile_structure(structure.start, scope)
+    if not start_ok then
+        return false, {}, "compile for start value failed:\n"..start_msg
+    end
+    scope_shift(scope, 1) -- start
+    local step_ok, step_pattern, step_msg = compile_structure(structure.step, scope)
+    if not step_ok then
+        return false, {}, "compile for step value failed:\n"..step_msg
+    end
+    scope_shift(scope, 2) -- step step
+    local stop_ok, stop_pattern, stop_msg = compile_structure(structure.stop, scope)
+    if not stop_ok then
+        return false, {}, "compile for stop value failed:\n"..stop_msg
+    end
+    scope_shift(scope, -4) -- [code...] step step stop
+    return true, patterns(
+        escape_pattern(patterns(
+            "muninns_reflection",       -- <index> step index
+            block_pattern,              -- <index> step index
+            operators.op_add,           -- <index> new_index
+            "huginns_gambit"            -- <new_index>
+        )),
+        start_pattern,                  -- <?> [code...] start
+        step_pattern,                   -- <?> [code...] start step
+        pattern_stack_fetch_copy(1),    -- <?> [code...] start step step
+        stop_pattern,                   -- <?> [code...] start step step stop
+        pattern_stack_fetch_copy(4),    -- <?> [code...] start step step stop start
+        operators.op_sub,               -- <?> [code...] start step step delta
+        pattern_stack_fetch(2),         -- <?> [code...] start step delta step
+        operators.op_div,               -- <?> [code...] start step count-1
+        pattern_number(1),              -- <?> [code...] start step count-1 1
+        operators.op_add,               -- <?> [code...] start step count
+        "huginns_gambit",               -- <count> [code...] start step
+        "muninns_reflection",           -- <count> [code...] start step count
+        "gemini_gambit",                -- <count> [code...] start step...
+        "muninns_reflection",           -- <count> [code...] start step... count
+        "flocks_gambit",                -- <count> [code...] start [step...]
+        pattern_stack_fetch(2),         -- <count> [code...] [step...] start
+        "huginns_gambit",               -- <start> [code...] [step...]
+        "thoths_gambit",                -- <start> [returns...]
+        pattern_remove(1)               -- <start>
     ), "ok"
 end
 
@@ -709,9 +787,7 @@ local function compile_block(structure, scope)
     end
     local scope_excess = scope.offset - table.remove(scope.block_scopes)
     scope_shift(scope, -scope_excess)
-    if structure.needs_cleanup then
-        list_combine(pattern, pattern_remove(scope_excess))
-    end
+    list_combine(pattern, pattern_remove(scope_excess))
     return true, pattern, "ok"
 end
 
@@ -730,7 +806,8 @@ function compile_structure(structure, scope)
         value = compile_value,
         index = compile_index,
         if_statement = compile_if_statement,
-        foreach = compile_foreach,
+        foreach_loop = compile_foreach_loop,
+        for_loop = compile_for_loop,
         call = compile_call,
         return_statement = compile_return,
         bare_value = compile_bare_value,

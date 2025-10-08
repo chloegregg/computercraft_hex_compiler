@@ -1,3 +1,4 @@
-for (i in [1, 2, 3]) {
+let max = 10;
+for (i = 2 -> max by 2) {
     let a = i;
 }
