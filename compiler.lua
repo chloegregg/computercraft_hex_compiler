@@ -1,35 +1,6 @@
-local tokeniser = require("tokeniser")
+local constants = require("constants")
+local locations = require("locations")
 local table_to_json = require("table_to_json")
-
-local numbers = {
-    [0] = "zero",
-    [1] = "one",
-    [2] = "two",
-    [3] = "three",
-    [4] = "four",
-    [5] = "five",
-    [6] = "six",
-    [7] = "seven",
-    [8] = "eight",
-    [9] = "nine",
-    [10] = "ten",
-}
-
-local operators = {
-    op_add = "additive_distillation",
-    op_sub = "subtractive_distillation",
-    op_mul = "multiplicative_distillation",
-    op_div = "division_distillation",
-    op_and = "conjunction_distillation",
-    op_xor = "exclusion_distillation",
-    op_or  = "disjunction_distillation",
-    op_eql = "equality_distillation",
-    op_neq = "inequality_distillation",
-    op_gte = "maximus_distillation_2",
-    op_grt = "maximus_distillation",
-    op_lte = "minimus_distillation_2",
-    op_lst = "minimus_distillation",
-}
 
 local function scope_new()
     return {
@@ -163,9 +134,9 @@ local function pattern_number(value)
             "division_distillation"
         )
     end
-    if numbers[int_value] then
+    if constants.number_patterns[int_value] then
         return patterns(
-            numbers[int_value]
+            constants.number_patterns[int_value]
         )
     end
     local tens_pattern = {}
@@ -186,7 +157,7 @@ local function pattern_number(value)
     end
     return patterns(
         tens_pattern,
-        numbers[int_value % 10],
+        constants.number_patterns[int_value % 10],
         "additive_distillation"
     )
 end
@@ -451,7 +422,6 @@ local function compile_value(structure, scope)
         return true, escape_pattern(body_pattern), "ok"
     elseif structure.type == "inline_hex" then
         local pattern = {}
-        print("inline hex values: "..table_to_json(structure.value))
         for i, value_structure in ipairs(structure.value) do
             local value_ok, value_pattern, value_msg = compile_structure(value_structure, scope)
             if not value_ok then
@@ -524,26 +494,50 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_property_access(structure, scope)
-    if structure.type == "vector_access" then
-        if structure.value.component == "x" then
-            return true, patterns(
-                "vector_disintegration",
-                pattern_remove(2)
-            ), "ok"
-        elseif structure.value.component == "y" then
-            return true, patterns(
-                "vector_disintegration",
-                "bookkeepers_gambit_v-v"
-            ), "ok"
-        elseif structure.value.component == "z" then
-            return true, patterns(
-                "vector_disintegration",
-                "bookkeepers_gambit_vv-"
-            ), "ok"
-        end
-        return false, {}, "invalid vector access component"
+    local expected_args = constants.property_call_arguments[structure.name]
+    if structure.call and expected_args == nil then
+        return false, {}, "did not expect function call for "..structure.name.." property access"
     end
-    return false, {}, "invalid property access type"
+    local arg_patterns = {}
+    if expected_args then
+        if #structure.arguments ~= #expected_args then
+            return false, {}, "excepted "..expected_args.." arguments for property access function, got "..#structure.arguments.." instead"
+        end
+        local current_offset = 0
+        for i, value_structure in ipairs(structure.arguments) do
+            local shift = constants.property_call_arguments[structure.name][i] - current_offset
+            current_offset = current_offset + shift
+            scope_shift(scope, shift)
+            local value_ok, value_pattern, value_msg = compile_structure(value_structure, scope)
+            if not value_ok then
+                return false, {}, "failed to compile property access call argument #"..i..":\n"..value_msg
+            end
+            table.insert(arg_patterns, value_pattern)
+        end
+        scope_shift(scope, -current_offset)
+    end
+    if structure.name == "x" then
+        return true, patterns(
+            "vector_disintegration",
+            pattern_remove(2)
+        ), "ok"
+    elseif structure.name == "y" then
+        return true, patterns(
+            "vector_disintegration",
+            "bookkeepers_gambit_v-v"
+        ), "ok"
+    elseif structure.name == "z" then
+        return true, patterns(
+            "vector_disintegration",
+            "bookkeepers_gambit_vv-"
+        ), "ok"
+    elseif structure.name == "raycast" then
+        return true, patterns(
+            arg_patterns[1],
+            "archers_distillation"
+        ), "ok"
+    end
+    return false, {}, "invalid property access name"
 end
 
 ---compiles a function call structure into a pattern
@@ -594,7 +588,7 @@ local function compile_expression(structure, scope)
     return true, patterns(
         left_pattern,
         right_pattern,
-        operators[structure.op]
+        constants.operators[structure.op]
     ), "ok"
 end
 
@@ -607,7 +601,7 @@ end
 local function compile_variable_assignment(structure, scope)
     local var_index = scope_find(scope, structure.variable.name)
     if var_index < 1 and structure.is_declared then
-        return false, {}, "variable '"..structure.variable.name.."' not defined at "..tokeniser.location_string(structure.value.location)
+        return false, {}, "variable '"..structure.variable.name.."' not defined at "..locations.tostring(structure.value.location)
     end
     scope_shift(scope, 2 * #structure.variable.indicies)
     local value_ok, value_pattern, value_msg = compile_structure(structure.value, scope)
@@ -821,7 +815,7 @@ local function compile_for_loop(structure, scope)
             escape_pattern(patterns(
                 "muninns_reflection",       -- <index> step index
                 block_pattern,              -- <index> step index
-                operators.op_add,           -- <index> new_index
+                constants.operators.op_add,           -- <index> new_index
                 "huginns_gambit"            -- <new_index>
             )),
             pattern_number(start),          -- <?> [code...] start
@@ -855,7 +849,7 @@ local function compile_for_loop(structure, scope)
         escape_pattern(patterns(
             "muninns_reflection",       -- <index> step index
             block_pattern,              -- <index> step index
-            operators.op_add,           -- <index> new_index
+            constants.operators.op_add,           -- <index> new_index
             "huginns_gambit"            -- <new_index>
         )),
         start_pattern,                  -- <?> [code...] start
@@ -863,11 +857,11 @@ local function compile_for_loop(structure, scope)
         pattern_stack_fetch_copy(1),    -- <?> [code...] start step step
         stop_pattern,                   -- <?> [code...] start step step stop
         pattern_stack_fetch_copy(4),    -- <?> [code...] start step step stop start
-        operators.op_sub,               -- <?> [code...] start step step delta
+        constants.operators.op_sub,               -- <?> [code...] start step step delta
         pattern_stack_fetch(2),         -- <?> [code...] start step delta step
-        operators.op_div,               -- <?> [code...] start step count-1
+        constants.operators.op_div,               -- <?> [code...] start step count-1
         pattern_number(1),              -- <?> [code...] start step count-1 1
-        operators.op_add,               -- <?> [code...] start step count
+        constants.operators.op_add,               -- <?> [code...] start step count
         "huginns_gambit",               -- <count> [code...] start step
         "muninns_reflection",           -- <count> [code...] start step count
         "gemini_gambit",                -- <count> [code...] start step...
@@ -930,11 +924,11 @@ function compile_structure(structure, scope)
     if compiler then
         local compiled_ok, compiled_pattern, compiled_msg = compiler(structure.value, scope)
         if not compiled_ok then
-            return false, {}, "At "..tokeniser.location_string(structure.location).." "..compiled_msg
+            return false, {}, "At "..locations.tostring(structure.location).." "..compiled_msg
         end
         return true, compiled_pattern, "ok"
     end
-    return false, {}, "unknown structure type '"..tostring(structure.type).."' at "..tokeniser.location_string(structure.location)
+    return false, {}, "unknown structure type '"..tostring(structure.type).."' at "..locations.tostring(structure.location)
 end
 
 local function compile(structure)

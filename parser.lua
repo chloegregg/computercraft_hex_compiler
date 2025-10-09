@@ -1,13 +1,6 @@
-local tokeniser = require("tokeniser")
+local constants = require("constants")
+local locations = require("locations")
 local table_to_json = require("table_to_json")
-
-local op_order = {
-    {"op_exp"}, -- exponents first
-    {"op_mul", "op_div"}, -- then multiplication and division
-    {"op_add", "op_sub"}, -- then addition and subtraction,
-    {"op_eql", "op_grt", "op_gte", "op_lst", "op_lte", "op_neq"}, -- then boolean conditions
-    {"op_and", "op_or", "op_xor"}, -- then boolean combinations
-}
 
 ---check if a string has a substring at a location
 ---@param text string
@@ -17,6 +10,7 @@ local op_order = {
 local function contains_at(text, substr, init)
     return text:sub(init, init + #substr - 1) == substr
 end
+
 ---check if a string has a prefix
 ---@param text string
 ---@param prefix string
@@ -80,34 +74,6 @@ local test_parse_expression
 local test_parse_block
 local test_parse_function
 
-local property_parsers = {
-    ---attempts to parse a vector component property from tokens starting at the given index
-    ---@param tokens table
-    ---@param index integer
-    ---@return boolean ok
-    ---@return integer index
-    ---@return table structure
-    ---@return string msg
-    prop_vector_component = function(tokens, index)
-        local property_token = get_token(tokens, index)
-        if property_token.type ~= "prop_vector_component" then
-            return false, index, {}, "incorrect property parser for "..property_token.type
-        end
-        index = index + 1
-        return true, index, {
-            type = "property_access",
-            location = property_token.location,
-            location_end = property_token.location_end,
-            value = {
-                type = "vector_access",
-                value = {
-                    component = property_token.value
-                }
-            }
-        }, "ok"
-    end
-}
-
 ---attempts to parse an index from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -144,7 +110,7 @@ end
 local function test_parse_call(tokens, index)
     local open_bracket_token = get_token(tokens, index)
     if open_bracket_token.type ~= "paren_open" then
-        return false, index, {}, "missing opening bracket for function call at "..tokeniser.location_string(open_bracket_token.location)
+        return false, index, {}, "missing opening bracket for function call at "..locations.tostring(open_bracket_token.location)
     end
     index = index + 1
     local args = {}
@@ -162,7 +128,7 @@ local function test_parse_call(tokens, index)
                 break
             end
             if comma_token.type ~= "comma" then
-                return false, index, {}, "expected comma for function call argument "..(#args + 1).." at "..tokeniser.location_string(comma_token.location)
+                return false, index, {}, "expected comma for function call argument "..(#args + 1).." at "..locations.tostring(comma_token.location)
             end
             index = index + 1
         end
@@ -267,7 +233,7 @@ local function test_parse_value(tokens, index)
                     break
                 end
                 if comma_token.type ~= "comma" then
-                    return false, index, {}, "expected comma for index"..(#list_value_structures + 1).." at "..tokeniser.location_string(comma_token.location)
+                    return false, index, {}, "expected comma for index"..(#list_value_structures + 1).." at "..locations.tostring(comma_token.location)
                 end
                 index = index + 1
             end
@@ -289,7 +255,7 @@ local function test_parse_value(tokens, index)
             if axis ~= "z" then
                 local comma_token = get_token(tokens, index)
                 if comma_token.type ~= "comma" then
-                    return false, index, {}, "expected comma after "..axis.." component at "..tokeniser.location_string(comma_token.location)
+                    return false, index, {}, "expected comma after "..axis.." component at "..locations.tostring(comma_token.location)
                 end
                 index = index + 1
             end
@@ -311,7 +277,7 @@ local function test_parse_value(tokens, index)
         end
         local function_structures = function_structure.body.value.structures
         local has_return = false
-        if function_structures then
+        if #function_structures > 0 then
             local last_structure = function_structures[#function_structures]
             if last_structure.type == "return_statement" then
                 has_return = true
@@ -352,7 +318,7 @@ local function test_parse_value(tokens, index)
         }
     end
     if value == nil then
-        return false, index, {}, "not a valid value token at "..tokeniser.location_string(token.location)
+        return false, index, {}, "not a valid value token at "..locations.tostring(token.location)
     end
     if value.type == nil then
         value.type = token.type
@@ -395,12 +361,38 @@ local function test_parse_value(tokens, index)
                     args = call_structure
                 }
             }
-        elseif property_parsers[access_modifier_token.type] then
-            local prop_parser = property_parsers[access_modifier_token.type]
-            local property_ok, property_structure, property_msg
-            property_ok, index, property_structure, property_msg = prop_parser(tokens, index)
-            if not property_ok then
-                return false, index, {}, "failed to parse property "..access_modifier_token.type..":\n"..property_msg
+        elseif access_modifier_token.type == "property" then
+            local arg_structures = {}
+            local arg_count = #constants.property_call_arguments[access_modifier_token.value]
+            local call = false
+            if arg_count ~= nil then
+                index = index + 1
+                local open_paren_token = get_token(tokens, index)
+                if open_paren_token.type ~= "paren_open" then
+                    return false, index, {}, "property call missing parenthesis"
+                end
+                index = index + 1
+                call = true
+                for i = 1, arg_count do
+                    local value_ok, value_structure, value_msg
+                    value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+                    if not value_ok then
+                        return false, index, {}, "property call value #"..i.." failed to parse:\n"..value_msg
+                    end
+                    table.insert(arg_structures, value_structure)
+                    if i < arg_count then
+                        local comma_token = get_token(tokens, index)
+                        if comma_token.type ~= "comma" then
+                            return false, index, {}, "property call missing comma #"..i
+                        end
+                        index = index + 1
+                    end
+                end
+                local close_paren_token = get_token(tokens, index)
+                if close_paren_token.type ~= "paren_close" then
+                    return false, index, {}, "property call missing closing parenthesis"
+                end
+                index = index + 1
             end
             structure = {
                 type = "property",
@@ -408,7 +400,16 @@ local function test_parse_value(tokens, index)
                 location_end = tokens[index - 1].location_end,
                 value = {
                     value = structure,
-                    property = property_structure
+                    property = {
+                        type = "property_access",
+                        location = access_modifier_token.location,
+                        location_end = tokens[index - 1].location_end,
+                        value = {
+                            name = access_modifier_token.value,
+                            arguments = arg_structures,
+                            call = call
+                        }
+                    }
                 }
             }
         else
@@ -453,7 +454,7 @@ function test_parse_expression(tokens, index)
             return false, index, {}, "missing closing parenthesis"
         end
     end
-    for _, pass in pairs(op_order) do
+    for _, pass in pairs(constants.op_order) do
         local op_index = 1
         while op_index <= #op_tokens do
             for _, acting_op in pairs(pass) do
@@ -554,7 +555,7 @@ local function test_parse_assignment_statement(tokens, index)
     end
     local semicolon_token = get_token(tokens, index)
     if semicolon_token.type ~= "semicolon" then
-        return false, index, {}, "missing semicolon"
+        return false, index, {}, "missing semicolon, expression was:\n"..expression_msg
     end
     index = index + 1
     if acc_op_token then
@@ -674,7 +675,7 @@ local function test_parse_declaration_statement(tokens, index)
     if name_token.type ~= "name" then
         return false, index, {}, "declaration requires a variable name"
     end
-    local assignment_ok, new_index, assignment_structure, _ = test_parse_assignment_statement(tokens, index)
+    local assignment_ok, new_index, assignment_structure, assignment_msg = test_parse_assignment_statement(tokens, index)
     if assignment_ok then
         if #assignment_structure.value.variable.indicies > 0 then
             return false, index, {}, "cannot declare a variable with indicies"
@@ -685,7 +686,7 @@ local function test_parse_declaration_statement(tokens, index)
     index = index + 1
     local semicolon_token = get_token(tokens, index)
     if semicolon_token.type ~= "semicolon" then
-        return false, index, {}, "missing semicolon"
+        return false, index, {}, "missing semicolon, also assignment was:\n"..assignment_msg
     end
     index = index + 1
     return true, index, {
@@ -1088,7 +1089,7 @@ end
 function test_parse_function(tokens, index)
     local param_open_token = get_token(tokens, index)
     if param_open_token.type ~= "paren_open" then
-        return false, index, {}, "function missing parameters at "..tokeniser.location_string(param_open_token.location)
+        return false, index, {}, "function missing parameters at "..locations.tostring(param_open_token.location)
     end
     index = index + 1
     local params = {}
@@ -1097,7 +1098,7 @@ function test_parse_function(tokens, index)
         while true do
             local param_name_token = get_token(tokens, index)
             if param_name_token.type ~= "name" then
-                return false, index, {}, "function parameter name missing at "..tokeniser.location_string(param_name_token.location)
+                return false, index, {}, "function parameter name missing at "..locations.tostring(param_name_token.location)
             end
             index = index + 1
             table.insert(params, param_name_token.value)
@@ -1111,7 +1112,7 @@ function test_parse_function(tokens, index)
     index = index + 1
     local block_open_token = get_token(tokens, index)
     if block_open_token.type ~= "block_open" then
-        return false, index, {}, "function missing open block at "..tokeniser.location_string(block_open_token.location)
+        return false, index, {}, "function missing open block at "..locations.tostring(block_open_token.location)
     end
     index = index + 1
     local block_ok, block_structure, block_msg
@@ -1121,7 +1122,7 @@ function test_parse_function(tokens, index)
     end
     local block_close_token = get_token(tokens, index)
     if block_close_token.type ~= "block_close" then
-        return false, index, {}, "function missing close block at "..tokeniser.location_string(block_close_token.location)
+        return false, index, {}, "function missing close block at "..locations.tostring(block_close_token.location)
     end
     index = index + 1
     return true, index, {
@@ -1195,7 +1196,7 @@ local function parse(tokens)
     local ok, index, structure, msg = test_parse_block(tokens, 1)
     if not ok then
         local offending_token = get_token(tokens, index)
-        return false, {}, "error parsing at "..tokeniser.location_string(offending_token.location).."\n"..msg
+        return false, {}, "error parsing at "..locations.tostring(offending_token.location).."\n"..msg
     end
     return true, structure, "ok"
 end

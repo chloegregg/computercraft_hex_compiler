@@ -1,2 +1,1 @@
-let a = "minds_reflection";
-let b = "{a} compass_purification";
+let a = {1, 2, 3}.raycast({4, 5, 6});
