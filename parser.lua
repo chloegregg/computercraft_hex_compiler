@@ -363,9 +363,9 @@ local function test_parse_value(tokens, index)
             }
         elseif access_modifier_token.type == "property" then
             local arg_structures = {}
-            local arg_count = #constants.property_call_arguments[access_modifier_token.value]
+            local arg_scope_offsets = constants.property_call_arguments[access_modifier_token.value]
             local call = false
-            if arg_count ~= nil then
+            if arg_scope_offsets ~= nil then
                 index = index + 1
                 local open_paren_token = get_token(tokens, index)
                 if open_paren_token.type ~= "paren_open" then
@@ -373,14 +373,14 @@ local function test_parse_value(tokens, index)
                 end
                 index = index + 1
                 call = true
-                for i = 1, arg_count do
+                for i = 1, #arg_scope_offsets do
                     local value_ok, value_structure, value_msg
                     value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
                     if not value_ok then
                         return false, index, {}, "property call value #"..i.." failed to parse:\n"..value_msg
                     end
                     table.insert(arg_structures, value_structure)
-                    if i < arg_count then
+                    if i < #arg_scope_offsets then
                         local comma_token = get_token(tokens, index)
                         if comma_token.type ~= "comma" then
                             return false, index, {}, "property call missing comma #"..i
@@ -392,8 +392,9 @@ local function test_parse_value(tokens, index)
                 if close_paren_token.type ~= "paren_close" then
                     return false, index, {}, "property call missing closing parenthesis"
                 end
-                index = index + 1
             end
+            index = index + 1
+            print("???", index)
             structure = {
                 type = "property",
                 location = structure.location,
@@ -436,6 +437,7 @@ function test_parse_expression(tokens, index)
     local op_tokens = {}
     while true do
         local ok, value_structure, msg
+        print(index)
         ok, index, value_structure, msg = test_parse_value(tokens, index)
         if not ok then
             return false, index, {}, "failed to parse expression value:\n"..msg

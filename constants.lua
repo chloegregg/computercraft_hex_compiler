@@ -72,11 +72,6 @@ return {
         {"op_eql", "op_grt", "op_gte", "op_lst", "op_lte", "op_neq"}, -- then boolean conditions
         {"op_and", "op_or", "op_xor"}, -- then boolean combinations
     },
-    -- lists of argument scope offsets for compiling, also determines which
-    -- properties are functions
-    property_call_arguments = {
-        raycast = {1}
-    },
     -- defines patterns associated with operator tokens
     operators = {
         op_add = "additive_distillation",
@@ -106,5 +101,32 @@ return {
         [8] = "eight",
         [9] = "nine",
         [10] = "ten",
+    },
+    -- lists of argument scope offsets for compiling, also determines which
+    -- properties are functions
+    property_call_arguments = {
+        raycast = {1}
+    },
+    -- defines basic property access patterns
+    property_patterns = {
+        eyes = {"compass_purification"},
+        feet = {"compass_purification_2"},
+        looking = {"alidades_purification"},
+        height = {"stadiometers_purification"},
+        velocity = {"pace_purification"},
+    },
+
+    property_function_patterns = {
+        { -- 0 args
+        
+        },
+        { -- 1 arg
+            raycast = {"archers_distillation"},
+            raycast_side = {"architects_distillation"},
+            raycast_entity = {"scouts_distillation"},
+        },
+        { -- 2 args
+
+        }
     }
 }

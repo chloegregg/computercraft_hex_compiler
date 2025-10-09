@@ -494,14 +494,14 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_property_access(structure, scope)
-    local expected_args = constants.property_call_arguments[structure.name]
-    if structure.call and expected_args == nil then
+    local expected_arg_offsets = constants.property_call_arguments[structure.name]
+    if structure.call and expected_arg_offsets == nil then
         return false, {}, "did not expect function call for "..structure.name.." property access"
     end
     local arg_patterns = {}
-    if expected_args then
-        if #structure.arguments ~= #expected_args then
-            return false, {}, "excepted "..expected_args.." arguments for property access function, got "..#structure.arguments.." instead"
+    if expected_arg_offsets then
+        if #structure.arguments ~= #expected_arg_offsets then
+            return false, {}, "excepted "..expected_arg_offsets.." arguments for property access function, got "..#structure.arguments.." instead"
         end
         local current_offset = 0
         for i, value_structure in ipairs(structure.arguments) do
@@ -515,6 +515,17 @@ local function compile_property_access(structure, scope)
             table.insert(arg_patterns, value_pattern)
         end
         scope_shift(scope, -current_offset)
+        local standard_pattern = constants.property_function_patterns[#expected_arg_offsets + 1][structure.name]
+        if standard_pattern then
+            return true, patterns(
+                table.unpack(arg_patterns),
+                standard_pattern
+            ), "ok"
+        end
+    end
+    local standard_pattern = constants.property_patterns[structure.name]
+    if standard_pattern then
+        return true, standard_pattern, "ok"
     end
     if structure.name == "x" then
         return true, patterns(
@@ -530,11 +541,6 @@ local function compile_property_access(structure, scope)
         return true, patterns(
             "vector_disintegration",
             "bookkeepers_gambit_vv-"
-        ), "ok"
-    elseif structure.name == "raycast" then
-        return true, patterns(
-            arg_patterns[1],
-            "archers_distillation"
         ), "ok"
     end
     return false, {}, "invalid property access name"
