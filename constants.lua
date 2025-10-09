@@ -113,190 +113,214 @@ return {
     -- returns specifies if this results in a return value
     property_patterns = {
         x = {
-            method = false,
-            arguments = {},
-            pattern = {"vector_disintegration", "bookkeepers_gambit_vv"},
-            returns = true
+            type = "value",
+            value = {"vector_disintegration", "bookkeepers_gambit_vv"}
         },
         y = {
-            method = false,
-            arguments = {},
-            pattern = {"vector_disintegration", "bookkeepers_gambit_v-v"},
-            returns = true
+            type = "value",
+            value = {"vector_disintegration", "bookkeepers_gambit_v-v"}
         },
         z = {
-            method = false,
-            arguments = {},
-            pattern = {"vector_disintegration", "bookkeepers_gambit_vv-"},
-            returns = true
+            type = "value",
+            value = {"vector_disintegration", "bookkeepers_gambit_vv-"}
         },
         
         eyes = {
-            method = false,
-            arguments = {},
-            pattern = {"compass_purification"},
-            returns = true
+            type = "value",
+            value = {"compass_purification"}
         },
         feet = {
-            method = false,
-            arguments = {},
-            pattern = {"compass_purification_2"},
-            returns = true
+            type = "value",
+            value = {"compass_purification_2"}
         },
         looking = {
-            method = false,
-            arguments = {},
-            pattern = {"alidades_purification"},
-            returns = true
+            type = "value",
+            value = {"alidades_purification"}
         },
         height = {
-            method = false,
-            arguments = {},
-            pattern = {"stadiometers_purification"},
-            returns = true
+            type = "value",
+            value = {"stadiometers_purification"}
         },
         velocity = {
-            method = false,
-            arguments = {},
-            pattern = {"pace_purification"},
-            returns = true
+            type = "value",
+            value = {"pace_purification"}
         },
 
         axis = {
-            method = false,
-            arguments = {},
-            pattern = {"axial_purification"},
-            returns = true
+            type = "value",
+            value = {"axial_purification"}
         },
 
         raycast = {
-            method = true,
-            arguments = {{name = "direction", offset = 0}},
-            pattern = {"direction", "archers_distillation"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "direction", offset = 0}},
+                pattern = {"direction", "archers_distillation"},
+                returns = true
+            }
         },
         raycast_side = {
-            method = true,
-            arguments = {{name = "direction", offset = 0}},
-            pattern = {"direction", "architects_distillation"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "direction", offset = 0}},
+                pattern = {"direction", "architects_distillation"},
+                returns = true
+            }
         },
         raycast_entity = {
-            method = true,
-            arguments = {{name = "direction", offset = 0}},
-            pattern = {"direction", "scouts_distillation"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "direction", offset = 0}},
+                pattern = {"direction", "scouts_distillation"},
+                returns = true
+            }
         },
         
         get_entity = {
-            method = false,
-            arguments = {},
-            pattern = {"entity_purification"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"entity_purification"},
+                returns = true
+            }
         },
         get_animal = {
-            method = false,
-            arguments = {},
-            pattern = {"entity_purification_animal"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"entity_purification_animal"},
+                returns = true
+            }
         },
         get_monster = {
-            method = false,
-            arguments = {},
-            pattern = {"entity_purification_monster"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"entity_purification_monster"},
+                returns = true
+            }
         },
         get_item = {
-            method = false,
-            arguments = {},
-            pattern = {"entity_purification_item"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"entity_purification_item"},
+                returns = true
+            }
         },
         get_player = {
-            method = false,
-            arguments = {},
-            pattern = {"entity_purification_player"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"entity_purification_player"},
+                returns = true
+            }
         },
         get_living = {
-            method = false,
-            arguments = {},
-            pattern = {"entity_purification_living"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"entity_purification_living"},
+                returns = true
+            }
         },
 
         nearby_animal = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_animal"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_animal"},
+                returns = true
+            }
         },
         nearby_non_animal = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_non_animal"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_non_animal"},
+                returns = true
+            }
         },
         nearby_monster = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_monster"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_monster"},
+                returns = true
+            }
         },
         nearby_non_monster = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_mnon_onster"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_mnon_onster"},
+                returns = true
+            }
         },
         nearby_item = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_item"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_item"},
+                returns = true
+            }
         },
         nearby_non_item = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillationon_n_item"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillationon_n_item"},
+                returns = true
+            }
         },
         nearby_player = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_player"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_player"},
+                returns = true
+            }
         },
         nearby_non_player = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_non_player"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_non_player"},
+                returns = true
+            }
         },
         nearby_living = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_living"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_living"},
+                returns = true
+            }
         },
         nearby_non_living = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_non_living"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_non_living"},
+                returns = true
+            }
         },
         nearby_any = {
-            method = true,
-            arguments = {{name = "radius", offset = 0}},
-            pattern = {"radius", "zone_distillation_any"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "radius", offset = 0}},
+                pattern = {"radius", "zone_distillation_any"},
+                returns = true
+            }
         },
         
         slice = {
-            method = true,
-            arguments = {{name = "start", offset = 0}, {name = "stop", offset = 1}},
-            pattern = {"start", "stop", "selection_exaltation"},
-            returns = true
+            type = "method",
+            value = {
+                arguments = {{name = "start", offset = 0}, {name = "stop", offset = 1}},
+                pattern = {"start", "stop", "selection_exaltation"},
+                returns = true
+            }
         },
     }
 }

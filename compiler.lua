@@ -357,6 +357,53 @@ end
 
 local compile_structure
 
+---processes a special name descriptor
+---@param structure table
+---@param scope table
+---@param descriptor table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_special_name(structure, scope, descriptor)
+    if not descriptor then
+        return false, {}, "invalid descriptor"
+    end
+    if structure.call and descriptor.type ~= "method" then
+        return false, {}, "unexpected call for non-method "..structure.name
+    end
+    local pattern = {}
+    if descriptor.type == "method" then
+        if #structure.arguments ~= #descriptor.value.arguments then
+            return false, {}, "excepted "..#descriptor.value.arguments.." arguments for method, got "..#structure.arguments.." instead"
+        end
+        for _, value in ipairs(descriptor.value.pattern) do
+            local arg_inserted = false
+            for i, arg in ipairs(descriptor.value.arguments) do
+                if value == arg.name then
+                    scope_shift(scope, arg.offset)
+                    local value_ok, value_pattern, value_msg = compile_structure(structure.arguments[i], scope)
+                    if not value_ok then
+                        return false, {}, "failed to compile method argument #"..i..":\n"..value_msg
+                    end
+                    scope_shift(scope, -arg.offset)
+                    list_combine(pattern, value_pattern)
+                    arg_inserted = true
+                    break
+                end
+            end
+            if not arg_inserted then
+                table.insert(pattern, value)
+            end
+        end
+        if not descriptor.value.returns then
+            list_combine(pattern, pattern_nulls(1))
+        end
+    else
+        list_combine(pattern, descriptor.value)
+    end
+    return true, pattern, "ok"
+end
+
 ---compiles a value structure into a pattern
 ---@param structure table
 ---@param scope table
@@ -495,43 +542,11 @@ end
 ---@return string msg
 local function compile_property_access(structure, scope)
     local property_descriptor = constants.property_patterns[structure.name]
-    if structure.call and not property_descriptor.method then
-        return false, {}, "unexpected function call for non-method property access"..structure.name
+    local property_ok, property_pattern, property_msg = compile_special_name(structure, scope, property_descriptor)
+    if not property_ok then
+        return false, {}, "failed to compile property:\n"..property_msg
     end
-    if not property_descriptor then
-        return false, {}, "invalid property access name"
-    end
-    local pattern = {}
-    if property_descriptor.method then
-        if #structure.arguments ~= #property_descriptor.arguments then
-            return false, {}, "excepted "..#property_descriptor.arguments.." arguments for property access function, got "..#structure.arguments.." instead"
-        end
-        for _, value in ipairs(property_descriptor.pattern) do
-            local arg_inserted = false
-            for i, arg in ipairs(property_descriptor.arguments) do
-                if value == arg.name then
-                    scope_shift(scope, arg.offset)
-                    local value_ok, value_pattern, value_msg = compile_structure(structure.arguments[i], scope)
-                    if not value_ok then
-                        return false, {}, "failed to compile property access call argument #"..i..":\n"..value_msg
-                    end
-                    scope_shift(scope, -arg.offset)
-                    list_combine(pattern, value_pattern)
-                    arg_inserted = true
-                    break
-                end
-            end
-            if not arg_inserted then
-                table.insert(pattern, value)
-            end
-        end
-    else
-        list_combine(pattern, property_descriptor.pattern)
-    end
-    if not property_descriptor.returns then
-        list_combine(pattern, pattern_nulls(1))
-    end
-    return true, pattern, "ok"
+    return true, property_pattern, "ok"
 end
 
 ---compiles a function call structure into a pattern

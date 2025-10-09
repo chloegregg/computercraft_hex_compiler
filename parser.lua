@@ -365,7 +365,7 @@ local function test_parse_value(tokens, index)
             local arg_structures = {}
             local property_descriptor = constants.property_patterns[access_modifier_token.value]
             local call = false
-            if property_descriptor.method then
+            if property_descriptor.type == "method" then
                 index = index + 1
                 local open_paren_token = get_token(tokens, index)
                 if open_paren_token.type ~= "paren_open" then
@@ -373,14 +373,14 @@ local function test_parse_value(tokens, index)
                 end
                 index = index + 1
                 call = true
-                for i = 1, #property_descriptor.arguments do
+                for i = 1, #property_descriptor.value.arguments do
                     local value_ok, value_structure, value_msg
                     value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
                     if not value_ok then
                         return false, index, {}, "property call value #"..i.." failed to parse:\n"..value_msg
                     end
                     table.insert(arg_structures, value_structure)
-                    if i < #property_descriptor.arguments then
+                    if i < #property_descriptor.value.arguments then
                         local comma_token = get_token(tokens, index)
                         if comma_token.type ~= "comma" then
                             return false, index, {}, "property call missing comma #"..i
