@@ -2,6 +2,9 @@
 local token_patterns = {
     {name = "_comment_line", pattern = "//[^\n]*"},
     {name = "_comment_block", pattern = "/%*.-%*/"},
+
+    {name = "inline_hex_marker", pattern = "\""},
+
     {name = "statement_if", pattern = "(if)%W"},
     {name = "statement_else", pattern = "(else)%W"},
     {name = "statement_for", pattern = "(for)%W"},
@@ -51,7 +54,7 @@ local token_patterns = {
     {name = "assignment", pattern = "="},
     {name = "comma", pattern = ","},
     {name = "semicolon", pattern = ";"},
-    {name = "name", pattern = "(%a%w*)"},
+    {name = "name", pattern = "([a-zA-Z_][a-zA-Z_0-9]*)"},
     {name = "_whitespace", pattern = "%s+"},
 }
 

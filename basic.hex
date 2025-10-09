@@ -1,4 +1,2 @@
-let a = {1, 2, 3};
-a.x;
-a.y;
-a.z;
+let a = "minds_reflection";
+let b = "{a} compass_purification";

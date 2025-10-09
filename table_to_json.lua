@@ -51,7 +51,7 @@ local function table_to_json(tbl)
         elseif o == nil then
             return "null"
         else
-            return '"'..tostring(o)..'"'
+            return '"'..tostring(o):gsub("\\", "\\\\"):gsub("\"", "\\\"")..'"'
         end
     end
     return serialize(tbl)

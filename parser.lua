@@ -171,6 +171,49 @@ local function test_parse_call(tokens, index)
     return true, index, args, "ok"
 end
 
+---attempts to parse inline hex from tokens starting at the given index
+---@param tokens table
+---@param index integer
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_inline_hex(tokens, index)
+    local structures = {}
+    local current_token = get_token(tokens, index)
+    while current_token.type ~= "inline_hex_marker" do
+        index = index + 1
+        if current_token.type == "block_open" then
+            local value_ok, value_structure, value_msg
+            value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+            if not value_ok then
+                return false, index, {}, "failed to parse inline hex value:\n"..value_msg
+            end
+            local close_value_token = get_token(tokens, index)
+            if close_value_token.type ~= "block_close" then
+                return false, index, {}, "missing inline hex value close token"
+            end
+            index = index + 1
+            table.insert(structures, {
+                type = "inline_hex_value",
+                location = current_token.location,
+                location_end = tokens[index - 1].location_end,
+                value = value_structure
+            })
+        else
+            table.insert(structures, {
+                type = "inline_hex_pattern",
+                location = current_token.location,
+                location_end = current_token.location_end,
+                value = current_token.raw
+            })
+        end
+        current_token = get_token(tokens, index)
+    end
+    index = index + 1
+    return true, index, structures, "ok"
+end
+
 ---attempts to parse a value from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -296,6 +339,16 @@ local function test_parse_value(tokens, index)
         value = {
             type = "function",
             value = function_structure
+        }
+    elseif token.type == "inline_hex_marker" then
+        local inline_hex_ok, inline_hex_structure, inline_hex_msg
+        inline_hex_ok, index, inline_hex_structure, inline_hex_msg = test_parse_inline_hex(tokens, index)
+        if not inline_hex_ok then
+            return false, index, {}, "failed to parse inline hex:\n"..inline_hex_msg
+        end
+        value = {
+            type = "inline_hex",
+            value = inline_hex_structure
         }
     end
     if value == nil then
@@ -665,7 +718,7 @@ end
 ---@return integer index
 ---@return table structure
 ---@return string msg
-local function test_parse_bare_value(tokens, index)
+local function test_parse_bare_value_statement(tokens, index)
     local start_token = get_token(tokens, index)
     local value_ok, value_structure, value_msg
     value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
@@ -861,7 +914,7 @@ end
 ---@return integer index
 ---@return table structure
 ---@return string msg
-local function test_parse_foreach_loop(tokens, index)
+local function test_parse_foreach_loop_statement(tokens, index)
     local for_token = get_token(tokens, index)
     if for_token.type ~= "statement_for" then
         return false, index, {}, "missing for token"
@@ -926,7 +979,7 @@ end
 ---@return integer index
 ---@return table structure
 ---@return string msg
-local function test_parse_for_loop(tokens, index)
+local function test_parse_for_loop_statement(tokens, index)
     local for_token = get_token(tokens, index)
     if for_token.type ~= "statement_for" then
         return false, index, {}, "missing for token"
@@ -1090,11 +1143,11 @@ local function test_parse_statement(tokens, index)
         {name = "declaration_statement", parser = test_parse_declaration_statement},
         {name = "deletion_statement", parser = test_parse_deletion_statement},
         {name = "assignment_statement", parser = test_parse_assignment_statement},
-        {name = "modifier", parser = test_parse_modifier_statement},
+        {name = "modifier_statement", parser = test_parse_modifier_statement},
         {name = "if_statement", parser = test_parse_if_statement},
-        {name = "foreach_loop", parser = test_parse_foreach_loop},
-        {name = "for_loop", parser = test_parse_for_loop},
-        {name = "bare_value", parser = test_parse_bare_value},
+        {name = "foreach_loop", parser = test_parse_foreach_loop_statement},
+        {name = "for_loop", parser = test_parse_for_loop_statement},
+        {name = "bare_value", parser = test_parse_bare_value_statement},
         {name = "return_statement", parser = test_parse_return_statement}
     }) do
         local ok, new_index, structure, msg = statement_parser_pair.parser(tokens, index)

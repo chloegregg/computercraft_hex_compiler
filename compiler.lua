@@ -449,6 +449,17 @@ local function compile_value(structure, scope)
             return false, {}, "function body failed to compile:\n"..body_msg
         end
         return true, escape_pattern(body_pattern), "ok"
+    elseif structure.type == "inline_hex" then
+        local pattern = {}
+        print("inline hex values: "..table_to_json(structure.value))
+        for i, value_structure in ipairs(structure.value) do
+            local value_ok, value_pattern, value_msg = compile_structure(value_structure, scope)
+            if not value_ok then
+                return false, {}, "failed to compile inline hex (value #"..i.."):\n"..value_msg
+            end
+            list_combine(pattern, value_pattern)
+        end
+        return true, pattern, "ok"
     elseif structure.type == "name" then
         local var_index = scope_find(scope, structure.value)
         if var_index < 1 then
@@ -680,6 +691,32 @@ local function compile_deletion(structure, scope)
     ), "ok"
 end
 
+---compiles an inline hex pattern structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_inline_hex_pattern(structure, scope)
+    return true, patterns(
+        structure
+    ), "ok"
+end
+
+---compiles an inline hex value structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_inline_hex_value(structure, scope)
+    local value_ok, value_pattern, value_msg = compile_structure(structure, scope)
+    if not value_ok then
+        return false, {}, "failed to compile inline hex value:\n"..value_msg
+    end
+    return true, value_pattern, "ok"
+end
+
 ---compiles a return structure into a pattern
 ---@param structure table
 ---@param scope table
@@ -874,6 +911,8 @@ end
 function compile_structure(structure, scope)
     local compiler = ({
         block = compile_block,
+        inline_hex_pattern = compile_inline_hex_pattern,
+        inline_hex_value = compile_inline_hex_value,
         deletion = compile_deletion,
         variable_assignment = compile_variable_assignment,
         expression = compile_expression,
