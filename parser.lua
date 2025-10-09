@@ -363,9 +363,9 @@ local function test_parse_value(tokens, index)
             }
         elseif access_modifier_token.type == "property" then
             local arg_structures = {}
-            local arg_scope_offsets = constants.property_call_arguments[access_modifier_token.value]
+            local property_descriptor = constants.property_patterns[access_modifier_token.value]
             local call = false
-            if arg_scope_offsets ~= nil then
+            if property_descriptor.method then
                 index = index + 1
                 local open_paren_token = get_token(tokens, index)
                 if open_paren_token.type ~= "paren_open" then
@@ -373,14 +373,14 @@ local function test_parse_value(tokens, index)
                 end
                 index = index + 1
                 call = true
-                for i = 1, #arg_scope_offsets do
+                for i = 1, #property_descriptor.arguments do
                     local value_ok, value_structure, value_msg
                     value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
                     if not value_ok then
                         return false, index, {}, "property call value #"..i.." failed to parse:\n"..value_msg
                     end
                     table.insert(arg_structures, value_structure)
-                    if i < #arg_scope_offsets then
+                    if i < #property_descriptor.arguments then
                         local comma_token = get_token(tokens, index)
                         if comma_token.type ~= "comma" then
                             return false, index, {}, "property call missing comma #"..i

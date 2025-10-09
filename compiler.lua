@@ -494,56 +494,44 @@ end
 ---@return table pattern
 ---@return string msg
 local function compile_property_access(structure, scope)
-    local expected_arg_offsets = constants.property_call_arguments[structure.name]
-    if structure.call and expected_arg_offsets == nil then
-        return false, {}, "did not expect function call for "..structure.name.." property access"
+    local property_descriptor = constants.property_patterns[structure.name]
+    if structure.call and not property_descriptor.method then
+        return false, {}, "unexpected function call for non-method property access"..structure.name
     end
-    local arg_patterns = {}
-    if expected_arg_offsets then
-        if #structure.arguments ~= #expected_arg_offsets then
-            return false, {}, "excepted "..expected_arg_offsets.." arguments for property access function, got "..#structure.arguments.." instead"
+    if not property_descriptor then
+        return false, {}, "invalid property access name"
+    end
+    local pattern = {}
+    if property_descriptor.method then
+        if #structure.arguments ~= #property_descriptor.arguments then
+            return false, {}, "excepted "..#property_descriptor.arguments.." arguments for property access function, got "..#structure.arguments.." instead"
         end
-        local current_offset = 0
-        for i, value_structure in ipairs(structure.arguments) do
-            local shift = constants.property_call_arguments[structure.name][i] - current_offset
-            current_offset = current_offset + shift
-            scope_shift(scope, shift)
-            local value_ok, value_pattern, value_msg = compile_structure(value_structure, scope)
-            if not value_ok then
-                return false, {}, "failed to compile property access call argument #"..i..":\n"..value_msg
+        for _, value in ipairs(property_descriptor.pattern) do
+            local arg_inserted = false
+            for i, arg in ipairs(property_descriptor.arguments) do
+                if value == arg.name then
+                    scope_shift(scope, arg.offset)
+                    local value_ok, value_pattern, value_msg = compile_structure(structure.arguments[i], scope)
+                    if not value_ok then
+                        return false, {}, "failed to compile property access call argument #"..i..":\n"..value_msg
+                    end
+                    scope_shift(scope, -arg.offset)
+                    list_combine(pattern, value_pattern)
+                    arg_inserted = true
+                    break
+                end
             end
-            table.insert(arg_patterns, value_pattern)
+            if not arg_inserted then
+                table.insert(pattern, value)
+            end
         end
-        scope_shift(scope, -current_offset)
-        local standard_pattern = constants.property_function_patterns[#expected_arg_offsets + 1][structure.name]
-        if standard_pattern then
-            return true, patterns(
-                table.unpack(arg_patterns),
-                standard_pattern
-            ), "ok"
-        end
+    else
+        list_combine(pattern, property_descriptor.pattern)
     end
-    local standard_pattern = constants.property_patterns[structure.name]
-    if standard_pattern then
-        return true, standard_pattern, "ok"
+    if not property_descriptor.returns then
+        list_combine(pattern, pattern_nulls(1))
     end
-    -- if structure.name == "x" then
-    --     return true, patterns(
-    --         "vector_disintegration",
-    --         pattern_remove(2)
-    --     ), "ok"
-    -- elseif structure.name == "y" then
-    --     return true, patterns(
-    --         "vector_disintegration",
-    --         "bookkeepers_gambit_v-v"
-    --     ), "ok"
-    -- elseif structure.name == "z" then
-    --     return true, patterns(
-    --         "vector_disintegration",
-    --         "bookkeepers_gambit_vv-"
-    --     ), "ok"
-    -- end
-    return false, {}, "invalid property access name"
+    return true, pattern, "ok"
 end
 
 ---compiles a function call structure into a pattern
