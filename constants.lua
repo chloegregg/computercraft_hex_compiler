@@ -322,5 +322,21 @@ return {
                 returns = true
             }
         },
+    },
+    -- defines global names and functions (same format as properties)
+    global_name_patterns = {
+        print = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "reveal"},
+                returns = true
+            }
+        },
+
+        me = {
+            type = "value",
+            value = {"minds_reflection"}
+        },
     }
 }

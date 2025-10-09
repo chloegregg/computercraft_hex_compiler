@@ -365,9 +365,6 @@ local compile_structure
 ---@return table pattern
 ---@return string msg
 local function compile_special_name(structure, scope, descriptor)
-    if not descriptor then
-        return false, {}, "invalid descriptor"
-    end
     if structure.call and descriptor.type ~= "method" then
         return false, {}, "unexpected call for non-method "..structure.name
     end
@@ -477,6 +474,16 @@ local function compile_value(structure, scope)
             list_combine(pattern, value_pattern)
         end
         return true, pattern, "ok"
+    elseif structure.type == "global" then
+        local global_descriptor = constants.global_name_patterns[structure.value.name]
+        if not global_descriptor then
+            return false, {}, "invalid global "..structure.value.name
+        end
+        local global_ok, global_pattern, global_msg = compile_special_name(structure.value.details, scope, global_descriptor)
+        if not global_ok then
+            return false, {}, "failed to compile global:\n"..global_msg
+        end
+        return true, global_pattern, "ok"
     elseif structure.type == "name" then
         local var_index = scope_find(scope, structure.value)
         if var_index < 1 then
@@ -542,7 +549,10 @@ end
 ---@return string msg
 local function compile_property_access(structure, scope)
     local property_descriptor = constants.property_patterns[structure.name]
-    local property_ok, property_pattern, property_msg = compile_special_name(structure, scope, property_descriptor)
+    if not property_descriptor then
+        return false, {}, "invalid property name"
+    end
+    local property_ok, property_pattern, property_msg = compile_special_name(structure.details, scope, property_descriptor)
     if not property_ok then
         return false, {}, "failed to compile property:\n"..property_msg
     end
@@ -567,7 +577,7 @@ local function compile_call(structure, scope)
     end
     local value_ok, value_pattern, value_msg = compile_structure(structure.value, scope)
     if not value_ok then
-        return false, {}, "compile indexed value failed:\n"..value_msg
+        return false, {}, "compile function value failed:\n"..value_msg
     end
     scope_shift(scope, -#structure.args)
     return true, patterns(

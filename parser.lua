@@ -100,12 +100,58 @@ local function test_parse_index(tokens, index)
     return true, index, value_structure, "ok"
 end
 
+---attempts to parse details about a special name
+---@param tokens table
+---@param index integer
+---@param descriptor table
+---@return boolean ok
+---@return integer index
+---@return table structure
+---@return string msg
+local function test_parse_special_name(tokens, index, descriptor)
+    local arg_structures = {}
+    local call = false
+    if descriptor.type == "method" then
+        local open_paren_token = get_token(tokens, index)
+        if open_paren_token.type ~= "paren_open" then
+            return false, index, {}, "method missing parenthesis"
+        end
+        index = index + 1
+        call = true
+        for i = 1, #descriptor.value.arguments do
+            local value_ok, value_structure, value_msg
+            value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
+            if not value_ok then
+                return false, index, {}, "method value #"..i.." failed to parse:\n"..value_msg
+            end
+            table.insert(arg_structures, value_structure)
+            if i < #descriptor.value.arguments then
+                local comma_token = get_token(tokens, index)
+                if comma_token.type ~= "comma" then
+                    return false, index, {}, "method missing comma #"..i
+                end
+                index = index + 1
+            end
+        end
+        local close_paren_token = get_token(tokens, index)
+        if close_paren_token.type ~= "paren_close" then
+            return false, index, {}, "method missing closing parenthesis"
+        end
+        index = index + 1
+    end
+    return true, index, {
+        arguments = arg_structures,
+        call = call
+    }, "ok"
+    
+end
+
 ---attempts to parse a function call from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
 ---@return boolean ok
 ---@return integer index
----@return table structure
+---@return table details
 ---@return string msg
 local function test_parse_call(tokens, index)
     local open_bracket_token = get_token(tokens, index)
@@ -214,9 +260,25 @@ local function test_parse_value(tokens, index)
             value = tonumber(token.value)
         }
     elseif token.type == "name" then
-        value = {
-            value = token.value
-        }
+        local global_descriptor = constants.global_name_patterns[token.value]
+        if global_descriptor then
+            local global_ok, global_details, global_msg
+            global_ok, index, global_details, global_msg = test_parse_special_name(tokens, index, global_descriptor)
+            if not global_ok then
+                return false, index, {}, "failed to parse global name details:\n"..global_msg
+            end
+            value = {
+                type = "global",
+                value = {
+                    name = token.value,
+                    details = global_details
+                }
+            }
+        else
+            value = {
+                value = token.value
+            }
+        end
     elseif token.type == "index_open" then
         local list_value_structures = {}
         local empty_list_token = get_token(tokens, index)
@@ -362,38 +424,16 @@ local function test_parse_value(tokens, index)
                 }
             }
         elseif access_modifier_token.type == "property" then
-            local arg_structures = {}
             local property_descriptor = constants.property_patterns[access_modifier_token.value]
-            local call = false
-            if property_descriptor.type == "method" then
-                index = index + 1
-                local open_paren_token = get_token(tokens, index)
-                if open_paren_token.type ~= "paren_open" then
-                    return false, index, {}, "property call missing parenthesis"
-                end
-                index = index + 1
-                call = true
-                for i = 1, #property_descriptor.value.arguments do
-                    local value_ok, value_structure, value_msg
-                    value_ok, index, value_structure, value_msg = test_parse_expression(tokens, index)
-                    if not value_ok then
-                        return false, index, {}, "property call value #"..i.." failed to parse:\n"..value_msg
-                    end
-                    table.insert(arg_structures, value_structure)
-                    if i < #property_descriptor.value.arguments then
-                        local comma_token = get_token(tokens, index)
-                        if comma_token.type ~= "comma" then
-                            return false, index, {}, "property call missing comma #"..i
-                        end
-                        index = index + 1
-                    end
-                end
-                local close_paren_token = get_token(tokens, index)
-                if close_paren_token.type ~= "paren_close" then
-                    return false, index, {}, "property call missing closing parenthesis"
-                end
+            if not property_descriptor then
+                return false, index, {}, "invalid property name "..access_modifier_token.value
             end
             index = index + 1
+            local property_ok, property_details, property_msg
+            property_ok, index, property_details, property_msg = test_parse_special_name(tokens, index, property_descriptor)
+            if not property_ok then
+                return false, index, {}, "failed to parse property details:\n"..property_msg
+            end
             structure = {
                 type = "property",
                 location = structure.location,
@@ -406,8 +446,7 @@ local function test_parse_value(tokens, index)
                         location_end = tokens[index - 1].location_end,
                         value = {
                             name = access_modifier_token.value,
-                            arguments = arg_structures,
-                            call = call
+                            details = property_details
                         }
                     }
                 }
