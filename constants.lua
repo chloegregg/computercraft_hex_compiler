@@ -28,8 +28,8 @@ return {
         {name = "value_null", pattern = "null"},
         {name = "value_bool", pattern = "(true)"},
         {name = "value_bool", pattern = "(false)"},
-        {name = "value_number", pattern = "(%d*%.%d+)"},
-        {name = "value_number", pattern = "(%d+)"},
+        {name = "value_number", pattern = "(-?%d*%.%d+)"},
+        {name = "value_number", pattern = "(-?%d+)"},
 
         {name = "paren_open", pattern = "%("},
         {name = "paren_close", pattern = "%)"},
@@ -44,6 +44,7 @@ return {
         {name = "op_sub", pattern = "%-"},
         {name = "op_mul", pattern = "%*"},
         {name = "op_div", pattern = "%/"},
+        {name = "op_mod", pattern = "%%"},
         {name = "op_exp", pattern = "%*%*"},
         {name = "op_eql", pattern = "=="},
         {name = "op_neq", pattern = "!="},
@@ -68,7 +69,7 @@ return {
     -- that is evaluated left to right simultaneously
     op_order = {
         {"op_exp"}, -- exponents first
-        {"op_mul", "op_div"}, -- then multiplication and division
+        {"op_mul", "op_div", "op_mod"}, -- then multiplication and division
         {"op_add", "op_sub"}, -- then addition and subtraction,
         {"op_eql", "op_grt", "op_gte", "op_lst", "op_lte", "op_neq"}, -- then boolean conditions
         {"op_and", "op_or", "op_xor"}, -- then boolean combinations
@@ -80,6 +81,7 @@ return {
         op_mul = "multiplicative_distillation",
         op_div = "division_distillation",
         op_exp = "power_distillation",
+        op_mod = "modulus_distillation",
         op_and = "conjunction_distillation",
         op_xor = "exclusion_distillation",
         op_or  = "disjunction_distillation",
