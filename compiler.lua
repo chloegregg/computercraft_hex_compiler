@@ -483,6 +483,58 @@ local function compile_index(structure, scope)
     ), "ok"
 end
 
+---compiles a property structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_property(structure, scope)
+    local value_ok, value_pattern, value_msg = compile_structure(structure.value, scope)
+    if not value_ok then
+        return false, {}, "compile property value failed:\n"..value_msg
+    end
+    scope_shift(scope, 1)
+    local property_ok, property_pattern, property_msg = compile_structure(structure.property, scope)
+    if not property_ok then
+        return false, {}, "compile property access failed:\n"..property_msg
+    end
+    scope_shift(scope, -1)
+    return true, patterns(
+        value_pattern,
+        property_pattern
+    ), "ok"
+end
+
+---compiles a property access structure into a pattern
+---@param structure table
+---@param scope table
+---@return boolean ok
+---@return table pattern
+---@return string msg
+local function compile_property_access(structure, scope)
+    if structure.type == "vector_access" then
+        if structure.value.component == "x" then
+            return true, patterns(
+                "vector_disintegration",
+                pattern_remove(2)
+            ), "ok"
+        elseif structure.value.component == "y" then
+            return true, patterns(
+                "vector_disintegration",
+                "bookkeepers_gambit_v-v"
+            ), "ok"
+        elseif structure.value.component == "z" then
+            return true, patterns(
+                "vector_disintegration",
+                "bookkeepers_gambit_vv-"
+            ), "ok"
+        end
+        return false, {}, "invalid vector access component"
+    end
+    return false, {}, "invalid property access type"
+end
+
 ---compiles a function call structure into a pattern
 ---@param structure table
 ---@param scope table
@@ -827,6 +879,8 @@ function compile_structure(structure, scope)
         expression = compile_expression,
         value = compile_value,
         index = compile_index,
+        property = compile_property,
+        property_access = compile_property_access,
         if_statement = compile_if_statement,
         foreach_loop = compile_foreach_loop,
         for_loop = compile_for_loop,

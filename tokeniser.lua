@@ -2,22 +2,26 @@
 local token_patterns = {
     {name = "_comment_line", pattern = "//[^\n]*"},
     {name = "_comment_block", pattern = "/%*.-%*/"},
-    {name = "statement_if", pattern = "(if)[^%w]"},
-    {name = "statement_else", pattern = "(else)[^%w]"},
-    {name = "statement_for", pattern = "(for)[^%w]"},
-    {name = "statement_while", pattern = "(while)[^%w]"},
-    {name = "statement_function", pattern = "(function)[^%w]"},
-    {name = "statement_return", pattern = "(return)[^%w]"},
-    {name = "statement_declare", pattern = "(let)[^%w]"},
-    {name = "statement_delete", pattern = "(delete)[^%w]"},
-    {name = "statement_by", pattern = "(by)[^%w]"},
-    {name = "statement_arrow", pattern = "(%->)[^%w]"},
-    {name = "statement_in", pattern = "(in)[^%w]"},
+    {name = "statement_if", pattern = "(if)%W"},
+    {name = "statement_else", pattern = "(else)%W"},
+    {name = "statement_for", pattern = "(for)%W"},
+    {name = "statement_while", pattern = "(while)%W"},
+    {name = "statement_function", pattern = "(function)%W"},
+    {name = "statement_return", pattern = "(return)%W"},
+    {name = "statement_declare", pattern = "(let)%W"},
+    {name = "statement_delete", pattern = "(delete)%W"},
+    {name = "statement_by", pattern = "(by)%W"},
+    {name = "statement_arrow", pattern = "(%->)%W"},
+    {name = "statement_in", pattern = "(in)%W"},
+
+    {name = "prop_vector_component", pattern = "%.([xyz])%W", padding = 1},
+
     {name = "value_null", pattern = "null"},
     {name = "value_bool", pattern = "(true)"},
     {name = "value_bool", pattern = "(false)"},
     {name = "value_number", pattern = "(%d*%.%d+)"},
     {name = "value_number", pattern = "(%d+)"},
+
     {name = "paren_open", pattern = "%("},
     {name = "paren_close", pattern = "%)"},
     {name = "block_open", pattern = "{"},
@@ -26,6 +30,7 @@ local token_patterns = {
     {name = "index_close", pattern = "%]"},
     {name = "increment", pattern = "%+%+"},
     {name = "decrement", pattern = "%-%-"},
+
     {name = "op_add", pattern = "%+"},
     {name = "op_sub", pattern = "%-"},
     {name = "op_mul", pattern = "%*"},
@@ -37,11 +42,12 @@ local token_patterns = {
     {name = "op_lte", pattern = "<="},
     {name = "op_lst", pattern = "<"},
     {name = "op_and", pattern = "(&&)"},
-    {name = "op_and", pattern = "(and)[^%w]"},
+    {name = "op_and", pattern = "(and)%W"},
     {name = "op_or", pattern = "(||)"},
-    {name = "op_or", pattern = "(or)[^%w]"},
+    {name = "op_or", pattern = "(or)%W"},
     {name = "op_xor", pattern = "(^^)"},
-    {name = "op_xor", pattern = "(xor)[^%w]"},
+    {name = "op_xor", pattern = "(xor)%W"},
+
     {name = "assignment", pattern = "="},
     {name = "comma", pattern = ","},
     {name = "semicolon", pattern = ";"},
@@ -114,7 +120,7 @@ local function get_next_token(code, index)
         ok, index, raw, match = test_pattern(code, token_type.pattern, index)
         if ok then
             local location_end = get_location(code, index - 1)
-            return true, index, {
+            return true, index + (token_type.padding or 0), {
                 type = token_type.name,
                 value = match,
                 raw = raw,

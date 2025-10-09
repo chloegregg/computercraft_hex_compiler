@@ -80,6 +80,34 @@ local test_parse_expression
 local test_parse_block
 local test_parse_function
 
+local property_parsers = {
+    ---attempts to parse a vector component property from tokens starting at the given index
+    ---@param tokens table
+    ---@param index integer
+    ---@return boolean ok
+    ---@return integer index
+    ---@return table structure
+    ---@return string msg
+    prop_vector_component = function(tokens, index)
+        local property_token = get_token(tokens, index)
+        if property_token.type ~= "prop_vector_component" then
+            return false, index, {}, "incorrect property parser for "..property_token.type
+        end
+        index = index + 1
+        return true, index, {
+            type = "property_access",
+            location = property_token.location,
+            location_end = property_token.location_end,
+            value = {
+                type = "vector_access",
+                value = {
+                    component = property_token.value
+                }
+            }
+        }, "ok"
+    end
+}
+
 ---attempts to parse an index from tokens starting at the given index
 ---@param tokens table
 ---@param index integer
@@ -283,8 +311,8 @@ local function test_parse_value(tokens, index)
         value = value
     }
     while true do
-        local open_bracket_token = get_token(tokens, index)
-        if open_bracket_token.type == "index_open" then
+        local access_modifier_token = get_token(tokens, index)
+        if access_modifier_token.type == "index_open" then
             local index_ok, index_structure, index_msg
             index_ok, index, index_structure, index_msg = test_parse_index(tokens, index)
             if not index_ok then
@@ -299,7 +327,7 @@ local function test_parse_value(tokens, index)
                     index = index_structure
                 }
             }
-        elseif open_bracket_token.type == "paren_open" then
+        elseif access_modifier_token.type == "paren_open" then
             local call_ok, call_structure, call_msg
             call_ok, index, call_structure, call_msg = test_parse_call(tokens, index)
             if not call_ok then
@@ -312,6 +340,22 @@ local function test_parse_value(tokens, index)
                 value = {
                     value = structure,
                     args = call_structure
+                }
+            }
+        elseif property_parsers[access_modifier_token.type] then
+            local prop_parser = property_parsers[access_modifier_token.type]
+            local property_ok, property_structure, property_msg
+            property_ok, index, property_structure, property_msg = prop_parser(tokens, index)
+            if not property_ok then
+                return false, index, {}, "failed to parse property "..access_modifier_token.type..":\n"..property_msg
+            end
+            structure = {
+                type = "property",
+                location = structure.location,
+                location_end = tokens[index - 1].location_end,
+                value = {
+                    value = structure,
+                    property = property_structure
                 }
             }
         else
