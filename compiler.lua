@@ -527,22 +527,22 @@ local function compile_property_access(structure, scope)
     if standard_pattern then
         return true, standard_pattern, "ok"
     end
-    if structure.name == "x" then
-        return true, patterns(
-            "vector_disintegration",
-            pattern_remove(2)
-        ), "ok"
-    elseif structure.name == "y" then
-        return true, patterns(
-            "vector_disintegration",
-            "bookkeepers_gambit_v-v"
-        ), "ok"
-    elseif structure.name == "z" then
-        return true, patterns(
-            "vector_disintegration",
-            "bookkeepers_gambit_vv-"
-        ), "ok"
-    end
+    -- if structure.name == "x" then
+    --     return true, patterns(
+    --         "vector_disintegration",
+    --         pattern_remove(2)
+    --     ), "ok"
+    -- elseif structure.name == "y" then
+    --     return true, patterns(
+    --         "vector_disintegration",
+    --         "bookkeepers_gambit_v-v"
+    --     ), "ok"
+    -- elseif structure.name == "z" then
+    --     return true, patterns(
+    --         "vector_disintegration",
+    --         "bookkeepers_gambit_vv-"
+    --     ), "ok"
+    -- end
     return false, {}, "invalid property access name"
 end
 

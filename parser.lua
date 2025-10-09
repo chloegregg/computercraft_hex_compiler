@@ -394,7 +394,6 @@ local function test_parse_value(tokens, index)
                 end
             end
             index = index + 1
-            print("???", index)
             structure = {
                 type = "property",
                 location = structure.location,
@@ -437,7 +436,6 @@ function test_parse_expression(tokens, index)
     local op_tokens = {}
     while true do
         local ok, value_structure, msg
-        print(index)
         ok, index, value_structure, msg = test_parse_value(tokens, index)
         if not ok then
             return false, index, {}, "failed to parse expression value:\n"..msg
