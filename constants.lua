@@ -322,6 +322,124 @@ return {
                 returns = true
             }
         },
+        add_end = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "integration_distillation"},
+                returns = true
+            }
+        },
+        add_start = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "speakers_distillation"},
+                returns = true
+            }
+        },
+        remove_end = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"derivation_decomposition", "bookkeepers_gambit_v"},
+                returns = true
+            }
+        },
+        remove_start = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"speakers_decomposition", "bookkeepers_gambit_v"},
+                returns = true
+            }
+        },
+        concat = {
+            type = "method",
+            value = {
+                arguments = {{name = "with", offset = 0}},
+                pattern = {"with", "additive_distillation"},
+                returns = true
+            }
+        },
+        length = {
+            type = "value",
+            value = {"length_purification"}
+        },
+        reversed = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"retrograde_purification"},
+                returns = true
+            }
+        },
+        unique = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"uniqueness_purification"},
+                returns = true
+            }
+        },
+        find = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "locators_distillation"},
+                returns = true
+            }
+        },
+        remove = {
+            type = "method",
+            value = {
+                arguments = {{name = "index", offset = 0}},
+                pattern = {"index", "excisors_distillation"},
+                returns = true
+            }
+        },
+        
+        read = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"chroniclers_purification"},
+                returns = true
+            }
+        },
+        write = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "chroniclers_gambit"},
+                returns = true
+            }
+        },
+        readable = {
+            type = "value",
+            value = {"auditors_purification"}
+        },
+        writeable = {
+            type = "value",
+            value = {"assessors_purification"}
+        },
+        
+        library_read = {
+            type = "method",
+            value = {
+                arguments = {{name = "pattern", offset = 0}},
+                pattern = {"pattern", "akashas_distillation"},
+                returns = true
+            }
+        },
+        library_write = {
+            type = "method",
+            value = {
+                arguments = {{name = "pattern", offset = 0}, {name = "value", offset = 0}},
+                pattern = {"pattern", "value", "akashas_gambit"},
+                returns = true
+            }
+        },
     },
     -- defines global names and functions (same format as properties)
     global_name_patterns = {
@@ -334,9 +452,175 @@ return {
             }
         },
 
+        abs = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "length_purification"},
+                returns = true
+            }
+        },
+        number = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "length_purification"},
+                returns = true
+            }
+        },
+        floor = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "floor_purification"},
+                returns = true
+            }
+        },
+        ceil = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "ceiling_purification"},
+                returns = true
+            }
+        },
+        random = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"entropy_reflection"},
+                returns = true
+            }
+        },
+        random_range = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "entropy_reflection", "multiplicative_distillation"},
+                returns = true
+            }
+        },
+        ["not"] = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "negation_purification"},
+                returns = true
+            }
+        },
+        sin = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "sine_purification"},
+                returns = true
+            }
+        },
+        cos = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "cosine_purification"},
+                returns = true
+            }
+        },
+        tan = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "tangent_purification"},
+                returns = true
+            }
+        },
+        asin = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "inverse_sine_purification"},
+                returns = true
+            }
+        },
+        acos = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "inverse_cosine_purification"},
+                returns = true
+            }
+        },
+        atan = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "inverse_tangent_purification"},
+                returns = true
+            }
+        },
+        atan2 = {
+            type = "method",
+            value = {
+                arguments = {{name = "y", offset = 0}, {name = "x", offset = 1}},
+                pattern = {"y", "x", "inverse_tangent_purification_2"},
+                returns = true
+            }
+        },
+        log = {
+            type = "method",
+            value = {
+                arguments = {{name = "base", offset = 1}, {name = "value", offset = 0}},
+                pattern = {"value", "base", "logarithmic_distillation"},
+                returns = true
+            }
+        },
+        ln = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "eulers_reflection", "logarithmic_distillation"},
+                returns = true
+            }
+        },
+
         me = {
             type = "value",
             value = {"minds_reflection"}
+        },
+        pi = {
+            type = "value",
+            value = {"arcs_reflection"}
+        },
+        tau = {
+            type = "value",
+            value = {"circles_reflection"}
+        },
+        e = {
+            type = "value",
+            value = {"eulers_reflection"}
+        },
+
+        read = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"scribes_reflection"},
+                returns = true
+            }
+        },
+        write = {
+            type = "method",
+            value = {
+                arguments = {{name = "value", offset = 0}},
+                pattern = {"value", "scribes_gambit"},
+                returns = true
+            }
+        },
+        readable = {
+            type = "value",
+            value = {"auditors_reflection"}
+        },
+        writeable = {
+            type = "value",
+            value = {"assessors_reflection"}
         },
     }
 }
