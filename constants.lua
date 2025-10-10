@@ -225,7 +225,7 @@ return {
             }
         },
 
-        nearby_animal = {
+        nearby_animals = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -233,7 +233,7 @@ return {
                 returns = true
             }
         },
-        nearby_non_animal = {
+        nearby_non_animals = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -241,7 +241,7 @@ return {
                 returns = true
             }
         },
-        nearby_monster = {
+        nearby_monsters = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -249,7 +249,7 @@ return {
                 returns = true
             }
         },
-        nearby_non_monster = {
+        nearby_non_monsters = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -257,7 +257,7 @@ return {
                 returns = true
             }
         },
-        nearby_item = {
+        nearby_items = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -265,7 +265,7 @@ return {
                 returns = true
             }
         },
-        nearby_non_item = {
+        nearby_non_items = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -273,7 +273,7 @@ return {
                 returns = true
             }
         },
-        nearby_player = {
+        nearby_players = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -281,7 +281,7 @@ return {
                 returns = true
             }
         },
-        nearby_non_player = {
+        nearby_non_players = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -289,7 +289,7 @@ return {
                 returns = true
             }
         },
-        nearby_living = {
+        nearby_livings = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -297,7 +297,7 @@ return {
                 returns = true
             }
         },
-        nearby_non_living = {
+        nearby_non_livings = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -305,7 +305,7 @@ return {
                 returns = true
             }
         },
-        nearby_any = {
+        nearby_anys = {
             type = "method",
             value = {
                 arguments = {{name = "radius", offset = 0}},
@@ -412,7 +412,7 @@ return {
             value = {
                 arguments = {{name = "value", offset = 0}},
                 pattern = {"value", "chroniclers_gambit"},
-                returns = true
+                returns = false
             }
         },
         readable = {
@@ -423,7 +423,7 @@ return {
             type = "value",
             value = {"assessors_purification"}
         },
-        
+
         library_read = {
             type = "method",
             value = {
@@ -435,9 +435,192 @@ return {
         library_write = {
             type = "method",
             value = {
-                arguments = {{name = "pattern", offset = 0}, {name = "value", offset = 0}},
+                arguments = {{name = "pattern", offset = 0}, {name = "value", offset = 1}},
                 pattern = {"pattern", "value", "akashas_gambit"},
-                returns = true
+                returns = false
+            }
+        },
+        
+        impulse = {
+            type = "method",
+            value = {
+                arguments = {{name = "vector", offset = 0}},
+                pattern = {"vector", "impulse"},
+                returns = false
+            }
+        },
+        blink = {
+            type = "method",
+            value = {
+                arguments = {{name = "distance", offset = 0}},
+                pattern = {"distance", "blink"},
+                returns = false
+            }
+        },
+        
+        weakness = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}, {name = "amplitude", offset = 1}},
+                pattern = {"time", "amplitude", "white_suns_nadir"},
+                returns = false
+            }
+        },
+        levitation = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}},
+                pattern = {"time", "blue_suns_nadir"},
+                returns = false
+            }
+        },
+        wither = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}, {name = "amplitude", offset = 1}},
+                pattern = {"time", "amplitude", "black_suns_nadir"},
+                returns = false
+            }
+        },
+        poison = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}, {name = "amplitude", offset = 1}},
+                pattern = {"time", "amplitude", "red_suns_nadir"},
+                returns = false
+            }
+        },
+        slowness = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}, {name = "amplitude", offset = 1}},
+                pattern = {"time", "amplitude", "green_suns_nadir"},
+                returns = false
+            }
+        },
+
+        regeneration = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}, {name = "amplitude", offset = 1}},
+                pattern = {"time", "amplitude", "white_suns_zenith"},
+                returns = false
+            }
+        },
+        night_vision = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}},
+                pattern = {"time", "blue_suns_zenith"},
+                returns = false
+            }
+        },
+        absorption = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}, {name = "amplitude", offset = 1}},
+                pattern = {"time", "amplitude", "black_suns_zenith"},
+                returns = false
+            }
+        },
+        haste = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}, {name = "amplitude", offset = 1}},
+                pattern = {"time", "amplitude", "red_suns_zenith"},
+                returns = false
+            }
+        },
+        strength = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}, {name = "amplitude", offset = 1}},
+                pattern = {"time", "amplitude", "green_suns_zenith"},
+                returns = false
+            }
+        },
+
+        craft_cypher = {
+            type = "method",
+            value = {
+                arguments = {{name = "pattern", offset = 0}},
+                pattern = {"pattern", "craft_cypher"},
+                returns = false
+            }
+        },
+        craft_trinket = {
+            type = "method",
+            value = {
+                arguments = {{name = "pattern", offset = 0}},
+                pattern = {"pattern", "craft_trinket"},
+                returns = false
+            }
+        },
+        craft_artifact = {
+            type = "method",
+            value = {
+                arguments = {{name = "pattern", offset = 0}},
+                pattern = {"pattern", "craft_artifact"},
+                returns = false
+            }
+        },
+        recharge_item = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"recharge_item"},
+                returns = false
+            }
+        },
+        craft_phial = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"craft_phial"},
+                returns = false
+            }
+        },
+        
+        flight_range = {
+            type = "method",
+            value = {
+                arguments = {{name = "range", offset = 0}},
+                pattern = {"range", "anchorites_flight"},
+                returns = false
+            }
+        },
+        flight_time = {
+            type = "method",
+            value = {
+                arguments = {{name = "time", offset = 0}},
+                pattern = {"time", "wayfarers_flight"},
+                returns = false
+            }
+        },
+        flight_elytra = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"altiora"},
+                returns = false
+            }
+        },
+        
+        teleport = {
+            type = "method",
+            value = {
+                arguments = {{name = "vector", offset = 0}},
+                pattern = {"vector", "greater_teleport"},
+                returns = false
+            }
+        },
+        
+        flay_mind = {
+            type = "method",
+            value = {
+                arguments = {{name = "vector", offset = 0}},
+                pattern = {"vector", "flay_mind"},
+                returns = false
             }
         },
     },
@@ -611,7 +794,7 @@ return {
             value = {
                 arguments = {{name = "value", offset = 0}},
                 pattern = {"value", "scribes_gambit"},
-                returns = true
+                returns = false
             }
         },
         readable = {
@@ -622,5 +805,190 @@ return {
             type = "value",
             value = {"assessors_reflection"}
         },
+        
+        explosion = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}, {name = "power", offset = 1}},
+                pattern = {"pos", "power", "explosion"},
+                returns = false
+            }
+        },
+        fireball = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}, {name = "power", offset = 1}},
+                pattern = {"pos", "power", "fireball"},
+                returns = false
+            }
+        },
+        make_note = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}, {name = "instrument", offset = 1}, {name = "note", offset = 2}},
+                pattern = {"pos", "instrument", "note", "make_note"},
+                returns = false
+            }
+        },
+
+        place_block = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "place_block"},
+                returns = false
+            }
+        },
+        break_block = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "break_block"},
+                returns = false
+            }
+        },
+        create_water = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "create_water"},
+                returns = false
+            }
+        },
+        create_lava = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "create_lava"},
+                returns = false
+            }
+        },
+        destroy_liquid = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "destroy_liquid"},
+                returns = false
+            }
+        },
+        conjure_block = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "conjure_block"},
+                returns = false
+            }
+        },
+        conjure_light = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "conjure_light"},
+                returns = false
+            }
+        },
+        overgrow = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "overgrow"},
+                returns = false
+            }
+        },
+        edify_sapling = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "edify_sapling"},
+                returns = false
+            }
+        },
+        ignite_block = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "ignite_block"},
+                returns = false
+            }
+        },
+        extinguish_area = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "extinguish_area"},
+                returns = false
+            }
+        },
+        
+        summon_sentinel = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "summon_sentinel"},
+                returns = false
+            }
+        },
+        summon_greater_sentinel = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "summon_greater_sentinel"},
+                returns = false
+            }
+        },
+        banish_sentinel = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"banish_sentinel"},
+                returns = false
+            }
+        },
+        sentinel_pos = {
+            type = "value",
+            value = {"locate_sentinel"}
+        },
+        wayfind_sentinel = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "wayfind_sentinel"},
+                returns = false
+            }
+        },
+
+        erase_item = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"erase_item"},
+                returns = false
+            }
+        },
+        
+        summon_lightning = {
+            type = "method",
+            value = {
+                arguments = {{name = "pos", offset = 0}},
+                pattern = {"pos", "summon_lightning"},
+                returns = false
+            }
+        },
+        summon_rain = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"summon_rain"},
+                returns = false
+            }
+        },
+        dispel_rain = {
+            type = "method",
+            value = {
+                arguments = {},
+                pattern = {"dispel_rain"},
+                returns = false
+            }
+        }
     }
 }
