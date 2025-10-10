@@ -454,6 +454,7 @@ local function compile_value(structure, scope)
         ), "ok"
     elseif structure.type == "function" then
         table.insert(scope.function_scopes, scope.offset)
+        scope_shift(scope, 1) -- iris gambit return
         for _, name in ipairs(structure.value.params) do
             scope_add(scope, name)
         end
@@ -583,7 +584,7 @@ local function compile_call(structure, scope)
     return true, patterns(
         pattern,
         value_pattern,
-        "hermes_gambit"
+        "iris_gambit"
     ), "ok"
 end
 
@@ -742,17 +743,18 @@ local function compile_return(structure, scope)
         return false, {}, "compile return value failed:\n"..value_msg
     end
     local scope_excess = scope.offset - scope.function_scopes[#scope.function_scopes]
-    local jump_pattern = {}
     if not structure.tail then
-        jump_pattern = {
-            "charons_gambit"
-        }
+        return true, patterns(
+            value_pattern,
+            pattern_stack_throw(scope_excess + 1),
+            pattern_remove(scope_excess - 1),
+            "hermes_gambit"
+        ), "ok"
     end
     return true, patterns(
         value_pattern,
         pattern_stack_throw(scope_excess + 1),
-        pattern_remove(scope_excess),
-        jump_pattern
+        pattern_remove(scope_excess)
     ), "ok"
 end
 
