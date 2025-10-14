@@ -54,6 +54,18 @@ Special cases (like vector division being the cross product) can be found in the
 ### Other values
 Although there is only syntax present for the above, any other values that can be created (like entities) are valid and have interactions.
 
+## Comments
+There are two types of comments available, line and block. Syntax is as follows:
+```
+// line comment
+
+/* Block
+Block
+Comment
+*/
+
+```
+
 ### Variables
 Variables are block scoped and defined with the `let` keyword, they can also be given initial values by using an assignment statement.
 *example:*
@@ -183,12 +195,86 @@ for (i -> 5) {
 }
 ```
 
-# UNFINISHED:
-
 ### Properties
+Properties represent specific values that can be accessed on values. These require a dot (`.`) followed by a name. Some properties are actually methods, which act like functions and require arguments. However, since these are not truly functions, they cannot be used as values, and they will fail to compile if given the wrong number of arguments.
+#### Property List
+|Type   |Name       |Description                |
+|-------|-----------|---------------------------|
+|Vector |x          |x component                |
+|Vector |y          |y component                |
+|Vector |z          |z component                |
+|Vector |axis       |closest integer unit vector|
+|Entity |eyes       |vector at eyes             |
+|Entity |feet       |vector at feet             |
+|Entity |looking    |vector in looking dir      |
+|Entity |height     |height                     |
+|Entity |velocity   |vector of velocity         |
+|List   |length     |number of elements         |
 
-### Comments
+#### Method List
+|Type   |Name               |Params         |Description                        |
+|-------|-------------------|---------------|-----------------------------------|
+|Vector |raycast            |direction      |vector at hit block                |
+|Vector |raycast_side       |direction      |unit vec of hit block side         |
+|Vector |raycast_entity     |direction      |entity hit by ray                  |
+|Vector |get_entity         |               |entity at this position            |
+|Vector |get_animal         |               |animal at this position            |
+|Vector |get_monster        |               |monster at this position           |
+|Vector |get_item           |               |item at this position              |
+|Vector |get_player         |               |player at this position            |
+|Vector |get_living         |               |living entity at this position     |
+|Vector |nearby_animal      |radius         |every animal within radius         |
+|Vector |nearby_non_animal  |radius         |every non animal within radius     |
+|Vector |nearby_monster     |radius         |every monster within radius        |
+|Vector |nearby_non_monster |radius         |every non monster within radius    |
+|Vector |nearby_item        |radius         |every item within radius           |
+|Vector |nearby_non_item    |radius         |every non item within radius       |
+|Vector |nearby_player      |radius         |every player within radius         |
+|Vector |nearby_non_player  |radius         |every non player within radius     |
+|Vector |nearby_living      |radius         |every living within radius         |
+|Vector |nearby_non_living  |radius         |every non living within radius     |
+|Vector |nearby_anys        |radius         |every entity within radius         |
+|Vector |library_read       |pattern        |value read from the library at pos |
+|Vector |library_write      |pattern, value |void, writes to the library at pos |
+|List   |slice              |start, stop    |inclusive sublist start...stop     |
+|List   |add_end            |value          |list with value added to end       |
+|List   |add_start          |value          |list with value added to start     |
+|List   |remove_end         |               |list with value at end removed     |
+|List   |remove_start       |               |list with value at start removed   |
+|List   |concat             |with           |combined list with all elements    |
+|List   |reversed           |               |list with order reversed           |
+|List   |unique             |               |list containing no duplicates      |
+|List   |find               |value          |index of value in the list         |
+|List   |remove             |index          |list with value at index removed   |
+|Entity |read               |               |value read from the entity         |
+|Entity |write              |value          |void, writes value to the entity   |
+|Entity |readable           |               |true if can be read from           |
+|Entity |writeable          |               |true if can be written to          |
+|Entity |impulse            |vector         |applies an impulse to entity       |
+|Entity |blink              |distance       |teleports and entity forward       |
+|Entity |weakness           |time, amplitude|applies weakness effect            |
+|Entity |levitation         |time           |applies levitation effect          |
+|Entity |wither             |time, amplitude|applies wither effect              |
+|Entity |poison             |time, amplitude|applies poison effect              |
+|Entity |slowness           |time, amplitude|applies slowness effect            |
+|Entity |regeneration       |time, amplitude|applies regeneration effect        |
+|Entity |night_vision       |time           |applies night vision effect        |
+|Entity |absorption         |time, amplitude|applies absorption effect          |
+|Entity |haste              |time, amplitude|applies haste effect               |
+|Entity |strength           |time, amplitude|applies strength effect            |
+|Entity |craft_cypher       |pattern        |uses this battery for a cypher     |
+|Entity |craft_trinket      |pattern        |uses this battery for a trinket    |
+|Entity |craft_artifact     |pattern        |uses this battery for an artifact  |
+|Entity |craft_phial        |               |uses this battery for a phial      |
+|Entity |recharge_item      |               |uses this battery to recharge      |
+|Entity |flight_range       |range          |allows flight in this range        |
+|Entity |flight_time        |time           |allows flight for this time        |
+|Entity |flight_elytra      |               |gives a temporary elytra           |
+|Entity |teleport           |vector         |offsets the position by the vector |
+|Entity |flay_mind          |vector         |flays a mind...                    |
+
+
 
 ### Global Values
-
+# unfinished
 ###
