@@ -1,6 +1,6 @@
 let items = me.eyes.raycast(me.looking).nearby_items(1);
 let focus_index = 1;
 if (items[2].readable) {
-    focus_index = 2;
+    focus_index = 2
 }
 items[3 - focus_index].craft_artifact(items[focus_index].read());
